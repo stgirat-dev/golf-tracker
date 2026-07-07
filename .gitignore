@@ -1,0 +1,4 @@
+.claude/
+.playwright-mcp/
+_check.js
+*.tmp
