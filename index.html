@@ -95,6 +95,28 @@ body{padding-bottom:calc(var(--nav) + env(safe-area-inset-bottom))}
 .legend i{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:-1px}
 .chartbox{position:relative}
 canvas{width:100%;height:230px;display:block}
+/* ---- Session-Plan ---- */
+.planstrip{display:flex;align-items:center;gap:10px;background:var(--s2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:10px;cursor:pointer}
+.planstrip .pl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);font-weight:700}
+.planstrip .pc{font-weight:700;font-size:15px}
+.planstrip .pn{margin-left:auto;font-weight:700;color:var(--tracer);font-size:15px;white-space:nowrap}
+.planstrip.done .pn{color:var(--mut)}
+.pblk{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line)}
+.pblk:last-child{border-bottom:none}
+.pblk .tick{flex:0 0 auto;width:20px;height:20px;border-radius:6px;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#16210a}
+.pblk.done .tick{background:var(--tracer);border-color:var(--tracer)}
+.pblk.now .tick{border-color:var(--tracer)}
+.pblk .nm{font-weight:700;font-size:15px}
+.pblk .ptg{font-size:12px;color:var(--mut);margin-top:1px;background:none;border:none;padding:0}
+.pblk .ct{margin-left:auto;font-weight:700;font-size:15px;white-space:nowrap;color:var(--mut)}
+.pblk.now .ct{color:var(--tracer)}
+.pblk.done .ct{color:var(--mut)}
+.go{background:var(--s2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 11px;font-size:13px;font-weight:600;cursor:pointer}
+.pblk .go{margin-left:8px;flex:0 0 auto;background:var(--s2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 11px;font-size:13px;font-weight:600;cursor:pointer}
+.pblk.now .go{border-color:var(--tracer);color:var(--tracer)}
+.pbarw{height:4px;background:var(--s2);border-radius:3px;overflow:hidden;margin-top:6px}
+.pbar{height:100%;background:var(--tracer);border-radius:3px;transition:width .2s}
+.pnote{font-size:13px;color:var(--mut);line-height:1.5}
 .tip{position:absolute;background:#000c;border:1px solid var(--line);border-radius:7px;padding:5px 9px;font-size:12px;pointer-events:none;opacity:0;transition:.1s;white-space:nowrap}
 .hint{font-size:12px;color:var(--mut);margin-top:8px}
 .h3{font-size:13px;font-weight:700;color:var(--ink);margin:0 0 11px;letter-spacing:.2px}
@@ -147,6 +169,7 @@ canvas{width:100%;height:230px;display:block}
   </div>
 
   <div class="card">
+   <div class="planstrip" id="planStrip" style="display:none"></div>
    <div class="setrow"><span class="inlbl">Set</span><div class="chips" id="setChips"></div></div>
    <div class="chips" id="clubChips"></div>
    <div class="chips" id="seriesChips" style="margin-top:2px"></div>
@@ -170,6 +193,35 @@ canvas{width:100%;height:230px;display:block}
   <div class="card">
    <div class="h3">Letzte Schläge</div>
    <div class="recent" id="recent"></div>
+  </div>
+ </section>
+
+ <!-- ===== PLAN ===== -->
+ <section class="view" id="vPlan">
+  <div class="card">
+   <div class="h3">Session-Plan</div>
+   <div class="statusrow" id="planSeg" style="margin-top:10px">
+    <div class="seg" data-p="s1">Session 1</div>
+    <div class="seg" data-p="s2">Session 2</div>
+    <div class="seg" data-p="off">Aus</div>
+   </div>
+   <div class="pnote" id="planIntro" style="margin-top:12px"></div>
+  </div>
+  <div class="card" id="planCard">
+   <div class="h3" id="planTitle">Blöcke</div>
+   <div class="pnote" id="planSince" style="margin:2px 0 8px"></div>
+   <div class="pbarw" style="margin-bottom:6px"><div class="pbar" id="planBar" style="width:0%"></div></div>
+   <div id="planList"></div>
+   <button class="go" id="planRestart" style="margin:14px 0 0;width:100%;padding:10px">Zähler neu starten</button>
+  </div>
+  <div class="card">
+   <div class="h3">Regeln</div>
+   <div class="pnote" style="margin-top:8px">
+    <b style="color:var(--ink)">Vorher 15 Minuten einschlagen</b>, ohne zu erfassen.<br><br>
+    <b style="color:var(--ink)">Schlechte Schläge gehören dazu.</b> Fett und getoppt auf „raus", ungewöhnlich aber getroffen auf „Ausreisser". Wer die schlechten löscht, misst nur seine besten Momente.<br><br>
+    <b style="color:var(--ink)">Der Schluss-Anker bleibt stehen</b>, auch wenn die Zeit knapp wird — er ist die halbe Auswertung. Lieber einen Schläger ganz streichen.<br><br>
+    <b style="color:var(--ink)">Am Ende exportieren.</b>
+   </div>
   </div>
  </section>
 
@@ -244,6 +296,7 @@ canvas{width:100%;height:230px;display:block}
 <!-- bottom nav -->
 <nav class="nav" id="nav">
  <button class="on" data-v="vRange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20 Q12 2 20 12" stroke-linecap="round"/><circle cx="20" cy="12" r="2" fill="currentColor" stroke="none"/></svg>Range</button>
+ <button data-v="vPlan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M4 12h10M4 18h7" stroke-linecap="round"/><path d="M17 16.5l1.8 1.8L22 15" stroke-linecap="round" stroke-linejoin="round"/></svg>Plan</button>
  <button data-v="vStats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="4" height="9" rx="1"/><rect x="10" y="6" width="4" height="14" rx="1"/><rect x="16" y="9" width="4" height="11" rx="1"/></svg>Stats</button>
  <button data-v="vTrend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16 L9 10 L13 13 L20 5" stroke-linecap="round" stroke-linejoin="round"/></svg>Verlauf</button>
  <button data-v="vList"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7h14M5 12h14M5 17h14" stroke-linecap="round"/></svg>Liste</button>
@@ -365,9 +418,9 @@ function addShot(){
  if(st=="clean"&&prev.length>=5){const m=mean(prev),s=pstd(prev);if(s>0&&Math.abs(carry-m)>2.2*s){st="outlier";toast("Weit ausserhalb – als Ausreisser markiert");}}
  DATA.push({id:"s"+Date.now()+Math.random().toString(36).slice(2,5),date,club:cur.club,series:cur.series,speed,carry,status:st,set:cur.set});
  save();$("#iSpeed").value="";$("#iCarry").value="";$("#iSpeed").focus();
- syncOpts();renderHero();renderRecent();if(st=="clean")toast(cur.club+" · "+carry+" m · "+setShort(cur.set));
+ syncOpts();renderHero();renderRecent();renderPlanStrip();if(activeView=="vPlan")renderPlan();if(st=="clean")toast(cur.club+" · "+carry+" m · "+setShort(cur.set));
 }
-function delShot(id){DATA=DATA.filter(d=>d.id!=id);save();syncOpts();renderHero();renderRecent();if(activeView=="vStats")renderStats();if(activeView=="vTrend")renderTrend();if(activeView=="vList")renderList();}
+function delShot(id){DATA=DATA.filter(d=>d.id!=id);save();syncOpts();renderHero();renderRecent();renderPlanStrip();if(activeView=="vPlan")renderPlan();if(activeView=="vStats")renderStats();if(activeView=="vTrend")renderTrend();if(activeView=="vList")renderList();}
 
 /* ---- stats tab ---- */
 function renderStats(){
@@ -440,9 +493,94 @@ function syncOpts(){
  ["#sSet","#tSet","#lSet"].forEach(s=>{const v=$(s).value;$(s).innerHTML=sOpt;$(s).value=v||"all";});
 }
 
+/* ---- Session-Plan ---- */
+const PLANS={
+ s1:{name:"Session 1 · Leiter",
+  intro:"Jeder zweite Schläger — das spannt die Leiter über das ganze Bag. Die Anker-Blöcke messen Tagesform und Ermüdung; ohne sie ist die Baseline bei deiner Tagesschwankung wenig wert. Der Qi-Block am Anfang ist einmalig und verbindet das neue Set mit deinen bisherigen Schlägen.",
+  blocks:[
+   {set:"qi",club:"7er",n:10,tag:"Brücke · einmalig, nur wenn das Qi dabei ist"},
+   {set:"srixon_i701",club:"7er",n:10,tag:"Anker Start"},
+   {set:"srixon_i701",club:"5er",n:12,tag:"27°"},
+   {set:"srixon_i701",club:"9er",n:12,tag:"42°"},
+   {set:"srixon_i701",club:"PW",n:12,tag:"46°"},
+   {set:"srixon_i701",club:"56°",n:12,tag:"56° · 12 Bounce"},
+   {set:"srixon_i701",club:"7er",n:10,tag:"Anker Ende"}]},
+ s2:{name:"Session 2 · Lücken",
+  intro:"Füllt die Zwischenräume der Leiter aus Session 1. Gleiche Anker, damit sich beide Sessions zusammenrechnen lassen.",
+  blocks:[
+   {set:"srixon_i701",club:"7er",n:10,tag:"Anker Start"},
+   {set:"srixon_i701",club:"4er",n:12,tag:"24°"},
+   {set:"srixon_i701",club:"6er",n:12,tag:"30°"},
+   {set:"srixon_i701",club:"8er",n:12,tag:"38°"},
+   {set:"srixon_i701",club:"52°",n:12,tag:"52° · 8 Bounce"},
+   {set:"srixon_i701",club:"60°",n:12,tag:"60° · 8 Bounce"},
+   {set:"srixon_i701",club:"7er",n:10,tag:"Anker Ende"}]}};
+let planId=(function(){try{return localStorage.getItem(KEY+"_plan")||"off";}catch(e){return "off";}})();
+let planT=(function(){try{return +localStorage.getItem(KEY+"_planT")||0;}catch(e){return 0;}})();
+/* Der Zeitstempel steckt in der ID neu erfasster Schlaege ("s"+Date.now()+...).
+   Seed und Altbestand liefern kleine Zahlen bzw. NaN und zaehlen damit nie mit. */
+function shotT(r){const n=parseInt(String(r.id).slice(1,14),10);return isFinite(n)?n:0;}
+function planReset(){planT=Date.now();try{localStorage.setItem(KEY+"_planT",planT);}catch(e){}}
+function planProgress(){
+ const p=PLANS[planId];if(!p)return null;
+ const counts=p.blocks.map(()=>0);
+ DATA.filter(x=>shotT(x)>=planT).forEach(s=>{
+  for(let k=0;k<p.blocks.length;k++){const b=p.blocks[k];
+   if(counts[k]<b.n&&b.club==s.club&&setOf(s)==b.set){counts[k]++;return;}}});
+ let cur=-1;for(let k=0;k<counts.length;k++){if(counts[k]<p.blocks[k].n){cur=k;break;}}
+ const tot=p.blocks.reduce((a,b)=>a+b.n,0),got=counts.reduce((a,b)=>a+b,0);
+ return {p,counts,cur:cur<0?-1:cur,tot,got:Math.min(got,tot)};
+}
+function planJump(k){
+ const p=PLANS[planId];if(!p||!p.blocks[k])return;
+ const b=p.blocks[k];
+ cur.set=b.set;cur.club=b.club;
+ try{localStorage.setItem(KEY+"_set",cur.set);}catch(e){}
+ buildChips();renderHero();renderRecent();renderPlanStrip();
+ show("vRange");toast(b.club+" · "+setShort(b.set)+" bereit");
+}
+function renderPlan(){
+ $$("#planSeg .seg").forEach(s=>s.classList.toggle("on",s.dataset.p==planId));
+ const pr=planProgress();
+ if(!pr){$("#planIntro").textContent="Kein Plan aktiv. Wähl oben eine Session, dann führt dich die App durch die Blöcke und zählt selbst mit.";
+  $("#planCard").style.display="none";return;}
+ $("#planCard").style.display="";
+ $("#planIntro").textContent=pr.p.intro;
+ $("#planTitle").textContent=pr.p.name+" · "+pr.got+" von "+pr.tot+" Schlägen";
+ $("#planSince").textContent=planT?("Gezählt wird ab "+new Date(planT).toLocaleString("de-CH",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+" — früher erfasste Schläge bleiben unberührt."):"";
+ $("#planBar").style.width=(100*pr.got/pr.tot).toFixed(1)+"%";
+ $("#planList").innerHTML=pr.p.blocks.map((b,k)=>{
+  const c=pr.counts[k],done=c>=b.n,now=k==pr.cur;
+  return `<div class="pblk ${done?"done":""} ${now?"now":""}">
+   <div class="tick">${done?"✓":""}</div>
+   <div><div class="nm" style="color:${done?"var(--mut)":colFor(b.club)}">${b.club} · ${setShort(b.set)}</div>
+   <div class="ptg">${b.tag}</div></div>
+   <div class="ct">${c}/${b.n}</div>
+   ${done?"":`<button class="go" data-k="${k}">los</button>`}</div>`;}).join("");
+ $$("#planList .go").forEach(e=>e.onclick=()=>planJump(+e.dataset.k));
+}
+function renderPlanStrip(){
+ const el=$("#planStrip"),pr=planProgress();
+ if(!pr){el.style.display="none";return;}
+ el.style.display="flex";
+ if(pr.cur<0){el.className="planstrip done";
+  el.innerHTML=`<div><div class="pl">Plan</div><div class="pc">Alle Blöcke fertig</div></div><div class="pn">Export nicht vergessen</div>`;}
+ else{const b=pr.p.blocks[pr.cur];
+  el.className="planstrip";
+  el.innerHTML=`<div><div class="pl">Jetzt · Block ${pr.cur+1} von ${pr.p.blocks.length}</div>
+   <div class="pc" style="color:${colFor(b.club)}">${b.club} · ${setShort(b.set)}</div></div>
+   <div class="pn">${pr.counts[pr.cur]}/${b.n}</div>`;}
+ el.onclick=()=>show("vPlan");
+}
+$$("#planSeg .seg").forEach(s=>s.onclick=()=>{planId=s.dataset.p;
+ try{localStorage.setItem(KEY+"_plan",planId);}catch(e){}
+ planReset();renderPlan();renderPlanStrip();});
+$("#planRestart").onclick=()=>{if(confirm("Zähler auf null setzen? Die erfassten Schläge bleiben erhalten, sie zählen nur nicht mehr zum Plan."))
+ {planReset();renderPlan();renderPlanStrip();toast("Plan neu gestartet");}};
+
 /* ---- nav ---- */
 function show(v){activeView=v;$$(".view").forEach(s=>s.classList.toggle("on",s.id==v));$$("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.v==v));
- if(v=="vStats")renderStats();if(v=="vTrend")renderTrend();if(v=="vList")renderList();if(v=="vRange"){renderHero();renderRecent();}}
+ if(v=="vStats")renderStats();if(v=="vTrend")renderTrend();if(v=="vList")renderList();if(v=="vPlan")renderPlan();if(v=="vRange"){renderHero();renderRecent();renderPlanStrip();}}
 $$("#nav button").forEach(b=>b.onclick=()=>show(b.dataset.v));
 
 /* events */
@@ -467,7 +605,7 @@ $("#bClear").onclick=()=>{if(confirm("Wirklich ALLE Schläge löschen? Vorher ex
 $("#bReset").onclick=()=>{if(confirm("Alle lokalen Daten durch die eingebauten "+SEED.length+" Schläge ersetzen? Aktuelle Daten vorher exportieren!")){try{localStorage.setItem(KEY+"_bak",localStorage.getItem(KEY)||"");}catch(e){}DATA=normSets(SEED.slice());try{localStorage.setItem(KEY+"_sv",SEEDVER);}catch(e){}save();syncOpts();show(activeView);toast("Zurückgesetzt: "+DATA.length+" Schläge");}};
 let rt;window.addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(()=>show(activeView),150);});
 
-buildChips();syncOpts();renderHero();renderRecent();
+buildChips();syncOpts();renderHero();renderRecent();renderPlan();renderPlanStrip();
 if(_migrated!==false)toast("Auf eingebaute "+DATA.length+" Schläge aktualisiert (alter Stand gesichert)");
 if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
