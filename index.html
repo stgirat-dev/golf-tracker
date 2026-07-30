@@ -112,6 +112,11 @@ canvas{width:100%;height:230px;display:block}
 .pblk.now .ct{color:var(--tracer)}
 .pblk.done .ct{color:var(--mut)}
 .go{background:var(--s2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 11px;font-size:13px;font-weight:600;cursor:pointer}
+.pblk.skip{opacity:.4}
+.pblk.skip .nm{text-decoration:line-through}
+.pskip{margin-left:6px;flex:0 0 auto;background:none;border:1px solid var(--line);color:var(--mut);
+ border-radius:8px;padding:6px 9px;font-size:13px;font-weight:600;cursor:pointer;line-height:1}
+.pblk.skip .pskip{border-color:var(--tracer);color:var(--tracer)}
 .pblk .go{margin-left:8px;flex:0 0 auto;background:var(--s2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 11px;font-size:13px;font-weight:600;cursor:pointer}
 .pblk.now .go{border-color:var(--tracer);color:var(--tracer)}
 .pbarw{height:4px;background:var(--s2);border-radius:3px;overflow:hidden;margin-top:6px}
@@ -604,15 +609,24 @@ let planT=(function(){try{return +localStorage.getItem(KEY+"_planT")||0;}catch(e
    Seed und Altbestand liefern kleine Zahlen bzw. NaN und zaehlen damit nie mit. */
 function shotT(r){const n=parseInt(String(r.id).slice(1,14),10);return isFinite(n)?n:0;}
 function planReset(){planT=Date.now();try{localStorage.setItem(KEY+"_planT",planT);}catch(e){}}
+function planSkips(){try{return JSON.parse(localStorage.getItem(KEY+"_skip_"+planId)||"[]");}catch(e){return [];}}
+function planSetSkips(a){try{localStorage.setItem(KEY+"_skip_"+planId,JSON.stringify(a));}catch(e){}}
+function planToggleSkip(k){const a=planSkips(),i=a.indexOf(k);
+ if(i>=0)a.splice(i,1);else a.push(k);
+ planSetSkips(a);renderPlan();renderPlanStrip();}
 function planProgress(){
  const p=PLANS[planId];if(!p)return null;
+ const sk=planSkips();
  const counts=p.blocks.map(()=>0);
  DATA.filter(x=>shotT(x)>=planT).forEach(s=>{
-  for(let k=0;k<p.blocks.length;k++){const b=p.blocks[k];
+  for(let k=0;k<p.blocks.length;k++){
+   if(sk.indexOf(k)>=0)continue;                       /* uebersprungene Bloecke zaehlen nicht mit */
+   const b=p.blocks[k];
    if(counts[k]<b.n&&b.club==s.club&&setOf(s)==b.set&&swingOf(s)==(b.swing||DEFSWING)){counts[k]++;return;}}});
- let cur=-1;for(let k=0;k<counts.length;k++){if(counts[k]<p.blocks[k].n){cur=k;break;}}
- const tot=p.blocks.reduce((a,b)=>a+b.n,0),got=counts.reduce((a,b)=>a+b,0);
- return {p,counts,cur:cur<0?-1:cur,tot,got:Math.min(got,tot)};
+ let cur=-1;for(let k=0;k<counts.length;k++){if(sk.indexOf(k)<0&&counts[k]<p.blocks[k].n){cur=k;break;}}
+ const tot=p.blocks.reduce((a,b,k)=>a+(sk.indexOf(k)>=0?0:b.n),0);
+ const got=p.blocks.reduce((a,b,k)=>a+(sk.indexOf(k)>=0?0:Math.min(counts[k],b.n)),0);
+ return {p,counts,cur,tot,got,sk};
 }
 function planJump(k){
  const p=PLANS[planId];if(!p||!p.blocks[k])return;
@@ -629,18 +643,21 @@ function renderPlan(){
   $("#planCard").style.display="none";return;}
  $("#planCard").style.display="";
  $("#planIntro").textContent=pr.p.intro;
- $("#planTitle").textContent=pr.p.name+" · "+pr.got+" von "+pr.tot+" Schlägen";
+ $("#planTitle").textContent=pr.p.name+" · "+pr.got+" von "+pr.tot+" Schlägen"+(pr.sk.length?" · "+pr.sk.length+" übersprungen":"");
  $("#planSince").textContent=planT?("Gezählt wird ab "+new Date(planT).toLocaleString("de-CH",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+" — früher erfasste Schläge bleiben unberührt."):"";
  $("#planBar").style.width=(100*pr.got/pr.tot).toFixed(1)+"%";
  $("#planList").innerHTML=pr.p.blocks.map((b,k)=>{
-  const c=pr.counts[k],done=c>=b.n,now=k==pr.cur;
-  return `<div class="pblk ${done?"done":""} ${now?"now":""}">
+  const skipped=pr.sk.indexOf(k)>=0;
+  const c=pr.counts[k],done=!skipped&&c>=b.n,now=k==pr.cur;
+  return `<div class="pblk ${done?"done":""} ${now?"now":""} ${skipped?"skip":""}">
    <div class="tick">${done?"✓":""}</div>
-   <div><div class="nm" style="color:${done?"var(--mut)":colFor(b.club)}">${b.club} · ${setShort(b.set)}${b.swing&&b.swing!=DEFSWING?" · "+swingShort(b.swing):""}</div>
-   <div class="ptg">${b.tag}</div></div>
-   <div class="ct">${c}/${b.n}</div>
-   ${done?"":`<button class="go" data-k="${k}">los</button>`}</div>`;}).join("");
+   <div><div class="nm" style="color:${done||skipped?"var(--mut)":colFor(b.club)}">${b.club} · ${setShort(b.set)}${b.swing&&b.swing!=DEFSWING?" · "+swingShort(b.swing):""}</div>
+   <div class="ptg">${skipped?"übersprungen":b.tag}</div></div>
+   <div class="ct">${skipped?"–":c+"/"+b.n}</div>
+   ${(done||skipped)?"":`<button class="go" data-k="${k}">los</button>`}
+   <button class="pskip" data-s="${k}" title="${skipped?"wieder aufnehmen":"überspringen"}">${skipped?"+":"×"}</button></div>`;}).join("");
  $$("#planList .go").forEach(e=>e.onclick=()=>planJump(+e.dataset.k));
+ $$("#planList .pskip").forEach(e=>e.onclick=()=>planToggleSkip(+e.dataset.s));
 }
 function renderPlanStrip(){
  const el=$("#planStrip"),pr=planProgress();
@@ -649,8 +666,10 @@ function renderPlanStrip(){
  if(pr.cur<0){el.className="planstrip done";
   el.innerHTML=`<div><div class="pl">Plan</div><div class="pc">Alle Blöcke fertig</div></div><div class="pn">Export nicht vergessen</div>`;}
  else{const b=pr.p.blocks[pr.cur];
+  const aktiv=pr.p.blocks.length-pr.sk.length;
+  const nr=pr.p.blocks.filter((x,i)=>i<=pr.cur&&pr.sk.indexOf(i)<0).length;
   el.className="planstrip";
-  el.innerHTML=`<div><div class="pl">Jetzt · Block ${pr.cur+1} von ${pr.p.blocks.length}</div>
+  el.innerHTML=`<div><div class="pl">Jetzt · Block ${nr} von ${aktiv}</div>
    <div class="pc" style="color:${colFor(b.club)}">${b.club} · ${setShort(b.set)}${b.swing&&b.swing!=DEFSWING?" · "+swingShort(b.swing):""}</div></div>
    <div class="pn">${pr.counts[pr.cur]}/${b.n}</div>`;}
  el.onclick=()=>show("vPlan");
