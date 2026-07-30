@@ -343,21 +343,23 @@ function normSets(a){return a.map(d=>(d&&d.set&&d.swing)?d:Object.assign({},d,{s
    einen Messwert gespeichert. Welcher Wert echt war, laesst sich je Tag bestimmen:
    liegt zu jeder Eingabe genau ein Ausgabewert vor, war die Ausgabe gerechnet.
    Das Ergebnis dieser Pruefung ist hier fest hinterlegt.                      */
-const MIG="2026-07-31";
+const MIG="2026-07-31b";
 const REAL_BOTH=["2026-06-21","2026-06-24","2026-07-21","2026-07-22","2026-07-23","2026-07-24"];
 const SPEED_CALC=["2026-07-03","2026-07-07","2026-07-08","2026-07-26","2026-07-27","2026-07-28","2026-07-30"];
-const UNCLEAR=["2026-06-26","2026-06-30","2026-07-02"];
+/* Ende Juni hat Andreia nur die Geschwindigkeit erfasst (Umstellung auf Carry erst
+   nach dem Platzreifekurs). An diesen Tagen war also der CARRY die gerechnete Groesse. */
+const CARRY_CALC=["2026-06-26","2026-06-30","2026-07-02"];
 const OTHER_VENUE=["2026-07-21","2026-07-22","2026-07-23","2026-07-24"];
 function migrate(a){
- let sp=0,vn=0;
+ let sp=0,ca=0,vn=0;
  const out=a.map(d=>{
   const o=Object.assign({},d);
   if(o.venue==null){o.venue=OTHER_VENUE.indexOf(o.date)>=0?"andere":"adlisberg";vn++;}
   if(SPEED_CALC.indexOf(o.date)>=0&&o.speed!=null){o.speed=null;o.src="carry";sp++;}
+  else if(CARRY_CALC.indexOf(o.date)>=0&&o.carry!=null){o.carry=null;o.src="speed";ca++;}
   else if(REAL_BOTH.indexOf(o.date)>=0)o.src="beide";
-  else if(UNCLEAR.indexOf(o.date)>=0)o.src="unklar";
   return o;});
- if(sp||vn)setTimeout(()=>toast("Bereinigt: "+sp+" gerechnete Geschwindigkeiten entfernt"),700);
+ if(sp||ca||vn)setTimeout(()=>toast("Bereinigt: "+sp+" Geschwindigkeiten und "+ca+" Carrys entfernt, die gerechnet waren"),700);
  return out;
 }
 function colFor(c){if(CLUBCOL[c])return CLUBCOL[c];let h=0;for(const ch of c)h=ch.charCodeAt(0)+((h<<5)-h);return"hsl("+(Math.abs(h)%360)+",65%,64%)";}
@@ -393,7 +395,7 @@ function load(){
    let out=normSets(stored);
    try{
     if(localStorage.getItem(KEY+"_mig")!==MIG){
-     localStorage.setItem(KEY+"_premig",s);
+     if(!localStorage.getItem(KEY+"_premig"))localStorage.setItem(KEY+"_premig",s);
      out=migrate(out);
      localStorage.setItem(KEY,JSON.stringify(out));
      localStorage.setItem(KEY+"_mig",MIG);
