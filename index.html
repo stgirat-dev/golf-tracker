@@ -211,7 +211,7 @@ canvas{width:100%;height:230px;display:block}
   <div class="card">
    <div class="h3">Session-Plan</div>
    <div class="statusrow" id="planSeg" style="margin-top:10px">
-    <div class="seg" data-p="s3">Nächste</div>
+    <div class="seg" data-p="s4">Nächste</div>
     <div class="seg" data-p="std">Standard</div>
     <div class="seg" data-p="off">Aus</div>
    </div>
@@ -577,18 +577,19 @@ let lastField=null;
 function refocus(){if(lastField)setTimeout(()=>{try{lastField.focus();}catch(e){}},0);}
 
 const PLANS={
- s3:{name:"Nächste Session · Kontrolle",
-  intro:"Erst 30 Minuten einschlagen, dann erst zählen. Der 8er kommt diesmal bewusst früh — beim letzten Mal lag er am Ende, und nur wenn die Lücke zum 7er auch bei früher Messung bleibt, ist sie echt. Bei PW und 56° voll bitte Geschwindigkeit UND Carry eintippen: das zeigt, mit welchem Faktor die Anlage bei hohem Loft rechnet.",
+ s4:{name:"Nächste Session · Treffpunkt",
+  intro:"Fünf Ziele: der 8er nochmals früh (die Lücke zum 7er hat sich halbiert, eine Wiederholung macht daraus Gewissheit), die langen Eisen mit Blick auf den Treffpunkt statt auf die Weite, das PW auf 9 Uhr als fehlende Stufe zwischen 80 und 98 m, ein längerer Anker am Schluss — das ist dein echter Baseline-Wert, nicht der am Anfang — und beim Driver ausnahmsweise beide Werte, damit sich die Weite gegen die Ballgeschwindigkeit prüfen lässt.",
   blocks:[
-   {set:"srixon_i701",club:"7er",n:10,tag:"Anker Start · erst nach 30 min Einschlagen"},
-   {set:"srixon_i701",club:"8er",n:16,tag:"Kontrolle · diesmal früh statt spät"},
-   {set:"srixon_i701",club:"Driver",n:12,tag:"fehlt seit dem 28.07."},
-   {set:"srixon_i701",club:"6er",n:14,tag:"bisher nur 5 Schläge"},
-   {set:"srixon_i701",club:"PW",n:10,tag:"beide Werte eintippen"},
-   {set:"srixon_i701",club:"56°",n:10,tag:"beide Werte eintippen"},
-   {set:"srixon_i701",club:"56°",n:10,swing:"9uhr",tag:"9-Uhr-Stufe ausbauen · bisher nur 3 Schläge"},
-   {set:"srixon_i701",club:"52°",n:8,swing:"9uhr",tag:"9-Uhr-Stufe neu"},
-   {set:"srixon_i701",club:"7er",n:10,tag:"Anker Ende"}]},
+   {set:"srixon_i701",club:"7er",n:15,tag:"Einschlagen · locker, zählt nicht als Baseline"},
+   {set:"srixon_i701",club:"7er",n:10,tag:"Anker Start"},
+   {set:"srixon_i701",club:"8er",n:14,tag:"Bestätigung · wieder früh"},
+   {set:"srixon_i701",club:"6er",n:12,tag:"Treffpunkt · Spray auf die Schlagfläche"},
+   {set:"srixon_i701",club:"4er",n:10,tag:"Treffpunkt · 50 % Ausreisser letztes Mal"},
+   {set:"srixon_i701",club:"Driver",n:10,tag:"noch neu · hier bitte Speed UND Carry eintippen"},
+   {set:"srixon_i701",club:"PW",n:10,tag:"voll"},
+   {set:"srixon_i701",club:"PW",n:10,swing:"9uhr",tag:"neue Stufe · füllt die Lücke 80–98 m"},
+   {set:"srixon_i701",club:"52°",n:8,tag:"voll · Stufe bestätigen"},
+   {set:"srixon_i701",club:"7er",n:12,tag:"Anker Ende · das ist die Baseline"}]},
  std:{name:"Standard · monatliche Messung",
   intro:"Die wiederkehrende Messsession für den Vergleich über die Zeit. Immer gleich ablaufen lassen, sonst sind die Werte nicht vergleichbar: 30 Minuten einschlagen, Anker, die Leiter von lang nach kurz, Anker.",
   blocks:[
@@ -603,7 +604,10 @@ const PLANS={
    {set:"srixon_i701",club:"52°",n:10,tag:"52° · voll"},
    {set:"srixon_i701",club:"56°",n:10,tag:"56° · voll"},
    {set:"srixon_i701",club:"7er",n:10,tag:"Anker Ende"}]}};
-let planId=(function(){try{return localStorage.getItem(KEY+"_plan")||"off";}catch(e){return "off";}})();
+let planId=(function(){try{let v=localStorage.getItem(KEY+"_plan")||"off";
+ /* s3 ist ausgelaufen: wer es aktiv hatte, bekommt das Nachfolgeprogramm */
+ if(v=="s3"){v="s4";localStorage.setItem(KEY+"_plan",v);localStorage.removeItem(KEY+"_planT");}
+ return v;}catch(e){return "off";}})();
 let planT=(function(){try{return +localStorage.getItem(KEY+"_planT")||0;}catch(e){return 0;}})();
 /* Der Zeitstempel steckt in der ID neu erfasster Schlaege ("s"+Date.now()+...).
    Seed und Altbestand liefern kleine Zahlen bzw. NaN und zaehlen damit nie mit. */
