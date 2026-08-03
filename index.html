@@ -211,7 +211,7 @@ canvas{width:100%;height:230px;display:block}
   <div class="card">
    <div class="h3">Session-Plan</div>
    <div class="statusrow" id="planSeg" style="margin-top:10px">
-    <div class="seg" data-p="s4">Nächste</div>
+    <div class="seg" data-p="s5">Nächste</div>
     <div class="seg" data-p="std">Standard</div>
     <div class="seg" data-p="off">Aus</div>
    </div>
@@ -492,7 +492,16 @@ function addShot(){
  if(st=="clean"&&carry!=null&&prev.length>=5){const m=mean(prev),s=pstd(prev);if(s>0&&Math.abs(carry-m)>2.2*s){st="outlier";toast("Weit ausserhalb – als Ausreisser markiert");}}
  DATA.push({id:"s"+Date.now()+Math.random().toString(36).slice(2,5),date,club:cur.club,series:cur.series,speed,carry,status:st,set:cur.set,swing:cur.swing,venue:cur.venue,bay:cur.bay||null});
  save();$("#iSpeed").value="";$("#iCarry").value="";$("#iCarry").focus();
- syncOpts();renderHero();renderRecent();renderPlanStrip();if(activeView=="vPlan")renderPlan();if(st=="clean")toast(cur.club+" · "+(carry!=null?carry+" m":speed+" km/h")+" · "+setShort(cur.set)+(cur.swing!=DEFSWING?" · "+swingShort(cur.swing):""));
+ syncOpts();renderHero();renderRecent();renderPlanStrip();if(activeView=="vPlan")renderPlan();if(st=="clean")toast(cur.club+" · "+(carry!=null?carry+" m":speed+" km/h")+" · "+setShort(cur.set)+(cur.swing!=DEFSWING?" · "+swingShort(cur.swing):"")+gapTxt());
+}
+/* Abstand zum vorherigen Schlag: Tempo ist am 03.08. zum Problem geworden
+   (24 s im Median, danach 8 m Einbruch). Nur anzeigen, nicht bewerten. */
+function gapTxt(){
+ const ts=DATA.map(shotT).filter(v=>v>0).sort((a,b)=>a-b);
+ if(ts.length<2)return "";
+ const d=(ts[ts.length-1]-ts[ts.length-2])/1000;
+ if(d<5||d>600)return "";
+ return " · "+Math.round(d)+" s";
 }
 function delShot(id){DATA=DATA.filter(d=>d.id!=id);save();syncOpts();renderHero();renderRecent();renderPlanStrip();if(activeView=="vPlan")renderPlan();if(activeView=="vStats")renderStats();if(activeView=="vTrend")renderTrend();if(activeView=="vList")renderList();}
 
@@ -577,19 +586,20 @@ let lastField=null;
 function refocus(){if(lastField)setTimeout(()=>{try{lastField.focus();}catch(e){}},0);}
 
 const PLANS={
- s4:{name:"Nächste Session · Treffpunkt",
-  intro:"Fünf Ziele: der 8er nochmals früh (die Lücke zum 7er hat sich halbiert, eine Wiederholung macht daraus Gewissheit), die langen Eisen mit Blick auf den Treffpunkt statt auf die Weite, das PW auf 9 Uhr als fehlende Stufe zwischen 80 und 98 m, ein längerer Anker am Schluss — das ist dein echter Baseline-Wert, nicht der am Anfang — und beim Driver ausnahmsweise beide Werte, damit sich die Weite gegen die Ballgeschwindigkeit prüfen lässt.",
+ s5:{name:"Nächste Session · Anker im Wechsel",
+  intro:"Zwei Änderungen gegenüber letztem Mal. Erstens: zwischen jedem Block steht ein kurzer 7er-Anker. Am 03.08. bist du über die Session um 8 m eingebrochen — dadurch wurden die langen Schläger frisch und die kurzen müde gemessen, und die Leiter war nicht lesbar. Mit Ankern dazwischen lässt sich jeder Block einzeln korrigieren. Zweitens: weniger Bälle, mehr Zeit. Ziel sind rund 45 Sekunden zwischen zwei Schlägen — die App zeigt dir nach jedem Schlag den Abstand an. Beim Driver wieder beide Werte.",
   blocks:[
-   {set:"srixon_i701",club:"7er",n:15,tag:"Einschlagen · locker, zählt nicht als Baseline"},
-   {set:"srixon_i701",club:"7er",n:10,tag:"Anker Start"},
-   {set:"srixon_i701",club:"8er",n:14,tag:"Bestätigung · wieder früh"},
-   {set:"srixon_i701",club:"6er",n:12,tag:"Treffpunkt · Spray auf die Schlagfläche"},
-   {set:"srixon_i701",club:"4er",n:10,tag:"Treffpunkt · 50 % Ausreisser letztes Mal"},
-   {set:"srixon_i701",club:"Driver",n:10,tag:"noch neu · hier bitte Speed UND Carry eintippen"},
-   {set:"srixon_i701",club:"PW",n:10,tag:"voll"},
-   {set:"srixon_i701",club:"PW",n:10,swing:"9uhr",tag:"neue Stufe · füllt die Lücke 80–98 m"},
-   {set:"srixon_i701",club:"52°",n:8,tag:"voll · Stufe bestätigen"},
-   {set:"srixon_i701",club:"7er",n:12,tag:"Anker Ende · das ist die Baseline"}]},
+   {set:"srixon_i701",club:"7er",n:12,tag:"Einschlagen · locker, zählt nicht als Baseline"},
+   {set:"srixon_i701",club:"7er",n:8,tag:"Anker A"},
+   {set:"srixon_i701",club:"8er",n:12,tag:"die offene Frage · ruhig schlagen"},
+   {set:"srixon_i701",club:"7er",n:6,tag:"Anker B"},
+   {set:"srixon_i701",club:"6er",n:10,tag:"Treffpunkt · Spray auf die Schlagfläche"},
+   {set:"srixon_i701",club:"7er",n:6,tag:"Anker C"},
+   {set:"srixon_i701",club:"Driver",n:10,tag:"Speed UND Carry eintippen"},
+   {set:"srixon_i701",club:"7er",n:6,tag:"Anker D"},
+   {set:"srixon_i701",club:"PW",n:8,tag:"voll"},
+   {set:"srixon_i701",club:"PW",n:10,swing:"1030",tag:"neue Stufe · 9 Uhr war zu kurz"},
+   {set:"srixon_i701",club:"7er",n:8,tag:"Anker E · das ist die Baseline"}]},
  std:{name:"Standard · monatliche Messung",
   intro:"Die wiederkehrende Messsession für den Vergleich über die Zeit. Immer gleich ablaufen lassen, sonst sind die Werte nicht vergleichbar: 30 Minuten einschlagen, Anker, die Leiter von lang nach kurz, Anker.",
   blocks:[
@@ -606,7 +616,7 @@ const PLANS={
    {set:"srixon_i701",club:"7er",n:10,tag:"Anker Ende"}]}};
 let planId=(function(){try{let v=localStorage.getItem(KEY+"_plan")||"off";
  /* s3 ist ausgelaufen: wer es aktiv hatte, bekommt das Nachfolgeprogramm */
- if(v=="s3"){v="s4";localStorage.setItem(KEY+"_plan",v);localStorage.removeItem(KEY+"_planT");}
+ if(v=="s3"||v=="s4"){v="s5";localStorage.setItem(KEY+"_plan",v);localStorage.removeItem(KEY+"_planT");}
  return v;}catch(e){return "off";}})();
 let planT=(function(){try{return +localStorage.getItem(KEY+"_planT")||0;}catch(e){return 0;}})();
 /* Der Zeitstempel steckt in der ID neu erfasster Schlaege ("s"+Date.now()+...).
