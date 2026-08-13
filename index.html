@@ -221,7 +221,7 @@ canvas{width:100%;height:230px;display:block}
   <div class="card">
    <div class="h3">Session-Plan</div>
    <div class="statusrow" id="planSeg" style="margin-top:10px">
-    <div class="seg" data-p="s5">Nächste</div>
+    <div class="seg" data-p="s6">Nächste</div>
     <div class="seg" data-p="std">Standard</div>
     <div class="seg" data-p="off">Aus</div>
    </div>
@@ -364,7 +364,9 @@ const SEEDVER="2026-07-27";
 const CLUBS=["Driver","3er","4er","5er","6er","7er","8er","9er","PW","52°","56°","58°","60°"];
 const CLUBCOL={"Driver":"#ff6b6b","3er":"#ff8e6b","4er":"#ffb454","5er":"#ffd454","6er":"#a6e84e","7er":"#cdf24e","8er":"#5cc8ff","9er":"#7ad6ff","PW":"#b79bff","52°":"#86e8b0","56°":"#5fd3b8","58°":"#5fd38d","60°":"#4ec2a0"};/* ---- Sets (Schlaegersaetze) ---- */
 const DEFSET="qi";
-const SETS={qi:{name:"TaylorMade Qi",short:"Qi",col:"#cdf24e"},srixon_i701:{name:"Srixon I-701",short:"Srixon",col:"#5cc8ff"}};
+const SETS={qi:{name:"TaylorMade Qi",short:"Qi",col:"#cdf24e"},
+ srixon_i701:{name:"Srixon I-701",short:"Srixon",col:"#5cc8ff"},
+ takomo_201:{name:"Takomo 201 MKII",short:"Takomo",col:"#e87ba4"}};
 const setName=k=>(SETS[k]&&SETS[k].name)||k;
 const setShort=k=>(SETS[k]&&SETS[k].short)||k;
 const setCol=k=>(SETS[k]&&SETS[k].col)||colFor(k);
@@ -648,6 +650,20 @@ let lastField=null;
 function refocus(){if(lastField)setTimeout(()=>{try{lastField.focus();}catch(e){}},0);}
 
 const PLANS={
+ s6:{name:"Erster Einsatz · Takomo",
+  intro:"Nur den R10 laufen lassen, nichts hier eintippen — er misst Weite, Abflug, Spin, Smash und Richtung selbst; getippte Werte würden die Auswertung über die Anlagenformel verfälschen. Der Srixon-7er (34°) ist Anker und Vergleich zugleich: sein Loftzwilling ist der Takomo-8er mit 35°. Vor dem ersten Schlag das Gerät exakt auf die Ziellinie ausrichten und die eingestanzten Lofts kontrollieren. Nach jedem Takomo-Block ein Wort notieren: besser, gleich oder schlechter.",
+  blocks:[
+   {set:"srixon_i701",club:"7er",n:15,tag:"Einschlagen · zählt nicht"},
+   {set:"srixon_i701",club:"7er",n:10,tag:"Anker A"},
+   {set:"takomo_201",club:"8er",n:14,tag:"Loftzwilling zum Anker · 35° gegen 34°"},
+   {set:"takomo_201",club:"7er",n:10,tag:"31°"},
+   {set:"takomo_201",club:"6er",n:10,tag:"27°"},
+   {set:"srixon_i701",club:"7er",n:8,tag:"Anker B"},
+   {set:"takomo_201",club:"5er",n:10,tag:"23° · warm, aber noch nicht müde"},
+   {set:"takomo_201",club:"4er",n:10,tag:"20°"},
+   {set:"takomo_201",club:"9er",n:10,tag:"40°"},
+   {set:"takomo_201",club:"PW",n:10,tag:"46° · gleicher Loft wie der Srixon-PW"},
+   {set:"srixon_i701",club:"7er",n:8,tag:"Anker C · muss stehen bleiben"}]},
  s5:{name:"Nächste Session · Anker im Wechsel",
   intro:"Zwei Änderungen gegenüber letztem Mal. Erstens: zwischen jedem Block steht ein kurzer 7er-Anker. Am 03.08. bist du über die Session um 8 m eingebrochen — dadurch wurden die langen Schläger frisch und die kurzen müde gemessen, und die Leiter war nicht lesbar. Mit Ankern dazwischen lässt sich jeder Block einzeln korrigieren. Zweitens: weniger Bälle, mehr Zeit. Ziel sind rund 45 Sekunden zwischen zwei Schlägen — die App zeigt dir nach jedem Schlag den Abstand an. Beim Driver wieder beide Werte.",
   blocks:[
@@ -678,7 +694,7 @@ const PLANS={
    {set:"srixon_i701",club:"7er",n:10,tag:"Anker Ende"}]}};
 let planId=(function(){try{let v=localStorage.getItem(KEY+"_plan")||"off";
  /* s3 ist ausgelaufen: wer es aktiv hatte, bekommt das Nachfolgeprogramm */
- if(v=="s3"||v=="s4"){v="s5";localStorage.setItem(KEY+"_plan",v);localStorage.removeItem(KEY+"_planT");}
+ if(v=="s3"||v=="s4"||v=="s5"){v="s6";localStorage.setItem(KEY+"_plan",v);localStorage.removeItem(KEY+"_planT");}
  return v;}catch(e){return "off";}})();
 let planT=(function(){try{return +localStorage.getItem(KEY+"_planT")||0;}catch(e){return 0;}})();
 /* Der Zeitstempel steckt in der ID neu erfasster Schlaege ("s"+Date.now()+...).
@@ -779,6 +795,7 @@ const R10COL={
  ap:["höhe des scheitelpunkts","hohe des scheitelpunkts","apex height"],
  ca:["carry-distanz","carry distance"],sd:["carry-abweichungsdistanz","carry deviation distance"],
  cang:["carry-abweichungswinkel","carry deviation angle"],
+ mk:["markierung","tag"],note:["notiz","note"],
  tot:["gesamtstrecke","total distance"],td:["gesamtabweichungsdistanz","total deviation distance"]};
 function csvRows(t){
  t=t.replace(/^﻿/,"");const out=[];let row=[],f="",q=false;
@@ -820,11 +837,17 @@ function importR10(text){
   if(have.has(id)){skip++;continue;}
   have.add(id);
   add.push({id,date:dt.iso,club,series:"R10",
-   speed:rd(num(r,"bs")),carry:rd(num(r,"ca")),status:"clean",
+   speed:rd(num(r,"bs")),carry:rd(num(r,"ca")),
+   /* In der Garmin-App markierte Schlaege ("BAD") uebernehmen wir als Ausreisser:
+      sie bleiben sichtbar und zaehlen mit, sind aber filterbar. */
+   status:(idx.mk>=0&&(r[idx.mk]||"").trim())?"outlier":"clean",
    set:cur.set,swing:DEFSWING,venue:cur.venue,bay:cur.bay||null,src:"r10",
    /* Winkel statt Meter, weil er nicht von der Schlagweite abhaengt.
       Schwellen 2,5 und 6 Grad — bei deinen Daten teilt das etwa in Drittel,
       und bei 130 m Carry entspricht das rund 6 bzw. 14 m seitlich. */
+   /* Von dir in der Garmin-App gesetzte Markierung und Notiz nicht wegwerfen. */
+   mark:(idx.mk>=0&&(r[idx.mk]||"").trim())||null,
+   note:(idx.note>=0&&(r[idx.note]||"").trim())||null,
    dir:(function(){const a=num(r,"cang");if(a==null)return null;
     return a<=-6?"ll":a<=-2.5?"l":a<2.5?"g":a<6?"r":"rr";})(),
    r:{cs:rd(num(r,"cs")),sm:num(r,"sm")==null?null:Math.round(num(r,"sm")*1000)/1000,
