@@ -112,6 +112,14 @@ canvas{width:100%;height:230px;display:block}
 .pblk.now .ct{color:var(--tracer)}
 .pblk.done .ct{color:var(--mut)}
 .go{background:var(--s2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 11px;font-size:13px;font-weight:600;cursor:pointer}
+#dirChips{flex-wrap:wrap;overflow-x:visible;justify-content:space-between;gap:6px}
+#dirChips .chip{padding:8px 0;font-size:13.5px;flex:1 1 0;min-width:62px;text-align:center}
+#dirChips .chip.on[data-d="ll"]{border-color:#3aa0d8;color:#3aa0d8}
+#dirChips .chip.on[data-d="l"]{border-color:#5cc8ff;color:#5cc8ff}
+#dirChips .chip.on[data-d="g"]{border-color:var(--tracer);color:var(--tracer)}
+#dirChips .chip.on[data-d="r"]{border-color:#ffb454;color:#ffb454}
+#dirChips .chip.on[data-d="rr"]{border-color:#ff8a3d;color:#ff8a3d}
+.dirflag{font-size:11px;padding:1px 6px;border-radius:6px;border:1px solid;margin-left:4px}
 .pblk.skip{opacity:.4}
 .pblk.skip .nm{text-decoration:line-through}
 .pskip{margin-left:6px;flex:0 0 auto;background:none;border:1px solid var(--line);color:var(--mut);
@@ -156,7 +164,7 @@ canvas{width:100%;height:230px;display:block}
   </div>
   <div style="display:flex;gap:7px">
    <button class="iconbtn" id="bExport">Export</button>
-   <label class="iconbtn" style="margin:0">Import<input type="file" id="bImport" accept="application/json" hidden></label>
+   <label class="iconbtn" style="margin:0">Import<input type="file" id="bImport" accept=".json,.csv,text/csv,application/json" hidden></label>
   </div>
  </div>
 
@@ -192,6 +200,8 @@ canvas{width:100%;height:230px;display:block}
     <div class="seg" data-st="outlier">Ausreisser</div>
     <div class="seg" data-st="excluded">raus</div>
    </div>
+   <div class="inlbl" style="margin:8px 0 0;text-align:left">Richtung · Seitenabweichung</div>
+   <div class="chips" id="dirChips"></div>
    <button class="addbtn" id="bAdd">+ Schlag erfassen</button>
    <div class="fatigue" id="fatigue"></div>
    <div class="subrow">
@@ -245,6 +255,36 @@ canvas{width:100%;height:230px;display:block}
    <div class="tg on" id="sClean">nur saubere</div>
   </div>
   <div class="kpis" id="kpis"></div>
+  <div class="card" id="dirCard" style="display:none">
+   <div class="h3">Richtung</div>
+   <div class="kpis" id="dirKpis"></div>
+   <div class="scroll"><table class="tbl num" id="dirTbl"><thead><tr>
+    <th>Schläger</th><th>erfasst</th><th>weit L</th><th>links</th><th>gerade</th><th>rechts</th><th>weit R</th><th>weit daneben</th><th>Tendenz</th>
+   </tr></thead><tbody></tbody></table></div>
+   <div class="hint" id="dirHint"></div>
+  </div>
+  <div class="card" id="r10Card" style="display:none">
+   <div class="h3">Garmin R10 · Schwung und Treffer</div>
+   <div class="filters" style="margin:10px 0 4px">
+    <select id="r10Club"><option value="all">Alle Schläger</option></select>
+   </div>
+   <div class="kpis" id="r10Kpis"></div>
+   <div class="scroll"><table class="tbl num" id="r10Tbl"><thead><tr>
+    <th>Schläger</th><th>n</th><th>Carry Ø</th><th>Std</th><th>Seite Ø</th><th>Std</th><th>Smash</th><th>Bahn°</th><th>Fläche°</th><th>Abflug°</th><th>Spin</th>
+   </tr></thead><tbody></tbody></table></div>
+   <div class="hint">Bahn = Schwungbahn (negativ = von aussen). Fläche = Schlagflächenstellung zur Bahn (positiv = offen). Beide als Median, weil einzelne Fehlmessungen den Mittelwert verziehen. Smash ohne Schläge mit unplausibler Schlägerkopfmessung.</div>
+  </div>
+  <div class="card" id="r10PatCard" style="display:none">
+   <div class="h3">Schlagbild · Seitenabweichung gegen Carry</div>
+   <div class="legend" id="legR10"></div>
+   <div class="chartbox"><canvas id="cPattern"></canvas></div>
+   <div class="hint">Links der Mittellinie = links vom Ziel. Die senkrechte Linie ist die Ziellinie.</div>
+  </div>
+  <div class="card" id="r10PathCard" style="display:none">
+   <div class="h3">Bahn und Schlagfläche</div>
+   <div class="chartbox"><canvas id="cPath"></canvas></div>
+   <div class="hint">Waagrecht die Schwungbahn, senkrecht die Schlagfläche zur Bahn. Das Kreuz in der Mitte ist neutral. Punkte links oben = von aussen mit offener Fläche, der Slice.</div>
+  </div>
   <div class="card">
    <div class="h3">Statistik je Schläger</div>
    <div class="scroll"><table class="tbl num" id="statTbl"><thead><tr><th>Schläger</th><th>n</th><th>Ø</th><th>verläss.</th><th>Std</th><th>CV%</th><th>Spanne</th></tr></thead><tbody></tbody></table></div>
@@ -337,6 +377,17 @@ const DEFVENUE="adlisberg";
 const venueOf=r=>(r&&r.venue)||null;
 const venueShort=k=>{const v=VENUES.find(o=>o.k==k);return v?v.short:(k||"–");};
 const swingOf=r=>(r&&r.swing)||DEFSWING;
+/* Richtung: bewusst dreistufig und ohne Voreinstellung. Wer nicht tippt,
+   bekommt keinen Wert — ein automatisches "gerade" wäre erfunden. */
+const DIRS=[{k:"ll",short:"weit L",full:"weit links",w:-2,col:"#3aa0d8"},
+            {k:"l", short:"links",  full:"links",      w:-1,col:"#5cc8ff"},
+            {k:"g", short:"gerade", full:"gerade",     w: 0,col:"#cdf24e"},
+            {k:"r", short:"rechts", full:"rechts",     w: 1,col:"#ffb454"},
+            {k:"rr",short:"weit R", full:"weit rechts",w: 2,col:"#ff8a3d"}];
+const dirShort=k=>(DIRS.find(d=>d.k==k)||{}).short||"";
+const dirFull=k=>(DIRS.find(d=>d.k==k)||{}).full||"";
+const dirW=k=>{const d=DIRS.find(x=>x.k==k);return d?d.w:null;};
+const dirCol=k=>(DIRS.find(d=>d.k==k)||{}).col||"#8fa395";
 const hasC=r=>r&&r.carry!=null&&!isNaN(r.carry);
 const hasS=r=>r&&r.speed!=null&&!isNaN(r.speed);
 const swingShort=k=>{const x=SWINGS.find(o=>o.k==k);return x?x.short:k;};
@@ -373,7 +424,7 @@ const SEED=[{"id":"seed0","date":"2026-06-21","club":"7er","series":"S1","speed"
 let _migrated=false;
 let DATA=load();
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
-let cur={club:"7er",series:"S1",status:"clean",
+let cur={club:"7er",series:"S1",status:"clean",dir:null,
  venue:(function(){try{return localStorage.getItem(KEY+"_venue")||DEFVENUE;}catch(e){return DEFVENUE;}})(),
  bay:(function(){try{return localStorage.getItem(KEY+"_bay")||"";}catch(e){return "";}})(),
  swing:(function(){try{return localStorage.getItem(KEY+"_swing")||DEFSWING;}catch(e){return DEFSWING;}})(),set:(function(){try{return localStorage.getItem(KEY+"_set")||DEFSET;}catch(e){return DEFSET;}})()};
@@ -434,8 +485,14 @@ function cLine(cv,vals,tip){const{x,w,h}=prep(cv);if(!vals.length){x.fillStyle="
 function cHBar(cv,labs,vals,cs){const{x,w,h}=prep(cv);if(!labs.length){x.fillStyle="#8fa395";x.fillText("Keine Daten",w/2-26,h/2);return;}const P={l:40,r:34,t:4,b:6},xmx=Math.max(...vals)*1.15||1,bh=(h-P.t-P.b)/labs.length,X=v=>P.l+v/xmx*(w-P.l-P.r);labs.forEach((lb,i)=>{const cy=P.t+bh*(i+.5);x.fillStyle=cs[i]+"cc";x.fillRect(P.l,cy-bh*.3,X(vals[i])-P.l,bh*.6);x.fillStyle="#8fa395";x.fillText(lb,3,cy+3);x.fillStyle="#eaf2ea";x.fillText(vals[i].toFixed(1),X(vals[i])+4,cy+3);});}
 
 /* ---- range tab ---- */
+function buildDirChips(){
+ $("#dirChips").innerHTML=DIRS.map(d=>`<div class="chip ${d.k==cur.dir?"on":""}" data-d="${d.k}">${d.short}</div>`).join("");
+ $$("#dirChips .chip").forEach(el=>{
+  el.addEventListener("mousedown",e=>e.preventDefault());
+  el.onclick=()=>{cur.dir=(cur.dir==el.dataset.d)?null:el.dataset.d;buildDirChips();refocus();};});
+}
 function buildChips(){
- buildSetChips();
+ buildSetChips();buildDirChips();
  const clubs=[...new Set([...CLUBS,...DATA.map(d=>d.club)])];
  $("#clubChips").innerHTML=clubs.map(c=>`<div class="chip ${c==cur.club?"on":""}" data-c="${c}">${c}</div>`).join("")+`<div class="chip add" id="addClub">+</div>`;
  $$("#clubChips .chip[data-c]").forEach(el=>el.onclick=()=>{cur.club=el.dataset.c;buildChips();renderHero();renderRecent();refocus();});
@@ -477,7 +534,7 @@ function checkFatigue(){
 }
 function renderRecent(){
  const d=DATA.filter(x=>x.date==today()).slice(-6).reverse();
- $("#recent").innerHTML=d.length?d.map(r=>`<div class="ritem"><span class="rc" style="background:${colFor(r.club)}"></span><b>${r.club}</b><span class="setflag" style="color:${setCol(setOf(r))};border-color:${setCol(setOf(r))}44">${setShort(setOf(r))}</span>${swingOf(r)!=DEFSWING?`<span class="setflag" style="color:${swingCol(swingOf(r))};border-color:${swingCol(swingOf(r))}44">${swingShort(swingOf(r))}</span>`:""}<span class="num rcarry">${r.carry!=null?r.carry:r.speed}</span><span class="lbl">${r.carry!=null?"m":"km/h"}${r.carry!=null&&r.speed!=null?" · "+r.speed+" km/h":""}</span>${r.status!="clean"?`<span class="flag">${r.status=="outlier"?"Ausreisser":"raus"}</span>`:""}<span class="undo" data-id="${r.id}">löschen</span></div>`).join(""):`<div class="empty">Noch kein Schlag heute. Wähl den Schläger und leg los.</div>`;
+ $("#recent").innerHTML=d.length?d.map(r=>`<div class="ritem"><span class="rc" style="background:${colFor(r.club)}"></span><b>${r.club}</b><span class="setflag" style="color:${setCol(setOf(r))};border-color:${setCol(setOf(r))}44">${setShort(setOf(r))}</span>${swingOf(r)!=DEFSWING?`<span class="setflag" style="color:${swingCol(swingOf(r))};border-color:${swingCol(swingOf(r))}44">${swingShort(swingOf(r))}</span>`:""}<span class="num rcarry">${r.carry!=null?r.carry:r.speed}</span><span class="lbl">${r.carry!=null?"m":"km/h"}${r.carry!=null&&r.speed!=null?" · "+r.speed+" km/h":""}</span>${r.dir?`<span class="dirflag" style="color:${dirCol(r.dir)};border-color:${dirCol(r.dir)}55">${dirShort(r.dir)}</span>`:""}${r.status!="clean"?`<span class="flag">${r.status=="outlier"?"Ausreisser":"raus"}</span>`:""}<span class="undo" data-id="${r.id}">löschen</span></div>`).join(""):`<div class="empty">Noch kein Schlag heute. Wähl den Schläger und leg los.</div>`;
  $$("#recent .undo").forEach(e=>e.onclick=()=>delShot(e.dataset.id));
 }
 function addShot(){
@@ -490,7 +547,10 @@ function addShot(){
  // auto outlier suggestion
  const prev=DATA.filter(x=>hasC(x)&&x.club==cur.club&&setOf(x)==cur.set&&swingOf(x)==cur.swing&&x.status=="clean").map(x=>x.carry);let st=cur.status;
  if(st=="clean"&&carry!=null&&prev.length>=5){const m=mean(prev),s=pstd(prev);if(s>0&&Math.abs(carry-m)>2.2*s){st="outlier";toast("Weit ausserhalb – als Ausreisser markiert");}}
- DATA.push({id:"s"+Date.now()+Math.random().toString(36).slice(2,5),date,club:cur.club,series:cur.series,speed,carry,status:st,set:cur.set,swing:cur.swing,venue:cur.venue,bay:cur.bay||null});
+ DATA.push({id:"s"+Date.now()+Math.random().toString(36).slice(2,5),date,club:cur.club,series:cur.series,speed,carry,status:st,set:cur.set,swing:cur.swing,venue:cur.venue,bay:cur.bay||null,dir:cur.dir});
+ /* nach jedem Schlag zuruecksetzen: die Richtung des letzten Schlags darf nicht
+    stillschweigend auf den naechsten uebergehen */
+ cur.dir=null;buildDirChips();
  save();$("#iSpeed").value="";$("#iCarry").value="";$("#iCarry").focus();
  syncOpts();renderHero();renderRecent();renderPlanStrip();if(activeView=="vPlan")renderPlan();if(st=="clean")toast(cur.club+" · "+(carry!=null?carry+" m":speed+" km/h")+" · "+setShort(cur.set)+(cur.swing!=DEFSWING?" · "+swingShort(cur.swing):"")+gapTxt());
 }
@@ -517,6 +577,8 @@ function renderStats(){
  $("#statTbl tbody").innerHTML=clubs.map(cl=>{const a=base.filter(x=>x.club==cl).map(x=>x.carry);return `<tr><td style="color:${colFor(cl)}">${cl}</td><td>${a.length}</td><td>${mean(a).toFixed(0)}</td><td class="tracerTxt">${stock(a).toFixed(0)}</td><td>${pstd(a).toFixed(1)}</td><td>${(pstd(a)/mean(a)*100).toFixed(1)}</td><td>${Math.max(...a)-Math.min(...a)}</td></tr>`;}).join("")||'<tr><td colspan="7" class="empty">Keine Daten</td></tr>';
  const ms=[],rs=[],cs=[];clubs.forEach(cl=>{const a=base.filter(x=>x.club==cl).map(x=>x.carry);ms.push(mean(a));rs.push([Math.min(...a),Math.max(...a)]);cs.push(colFor(cl));});
  cClub($("#cClub"),clubs,ms,rs,cs);
+ renderDir();
+ renderR10();
  renderSetCompare();
 }
 function renderSetCompare(){
@@ -697,6 +759,177 @@ $("#planRestart").onclick=()=>{if(confirm("Zähler auf null setzen? Die erfasste
  {planReset();renderPlan();renderPlanStrip();toast("Plan neu gestartet");}};
 
 /* ---- nav ---- */
+/* ================= Garmin R10 · CSV-Import =================
+   Der Export der Garmin-Golf-App: Zeile 1 Spaltennamen, Zeile 2 Einheiten,
+   ab Zeile 3 je ein Schlag. Deutsch und englisch werden beide erkannt. */
+const R10CLUB={"driver":"Driver","holz 3":"3er Holz","3 wood":"3er Holz","holz 5":"5er Holz","5 wood":"5er Holz",
+ "eisen 3":"3er","3 iron":"3er","eisen 4":"4er","4 iron":"4er","eisen 5":"5er","5 iron":"5er",
+ "eisen 6":"6er","6 iron":"6er","eisen 7":"7er","7 iron":"7er","eisen 8":"8er","8 iron":"8er",
+ "eisen 9":"9er","9 iron":"9er","pitching-wedge":"PW","pitching wedge":"PW",
+ "gap-wedge":"52°","gap wedge":"52°","sand-wedge":"56°","sand wedge":"56°",
+ "lob-wedge":"60°","lob wedge":"60°"};
+const R10COL={
+ date:["datum","date"],club:["schlägerart","schlagerart","club type","club"],
+ cs:["schl.gsch.","schlägergeschwindigkeit","club speed"],
+ bs:["ballgeschwindigkeit","ball speed"],sm:["smash factor"],
+ aa:["anstellwinkel","attack angle"],pa:["schwungbahn","club path"],
+ fa:["schlagfläche","schlagflache","face angle"],fp:["schlagflächenstellung","schlagflachenstellung","face to path"],
+ la:["abflugwinkel","launch angle"],ld:["abflugrichtung","launch direction"],
+ sp:["drehrate","spin rate"],spt:["drehratentyp","spin rate type"],
+ ap:["höhe des scheitelpunkts","hohe des scheitelpunkts","apex height"],
+ ca:["carry-distanz","carry distance"],sd:["carry-abweichungsdistanz","carry deviation distance"],
+ cang:["carry-abweichungswinkel","carry deviation angle"],
+ tot:["gesamtstrecke","total distance"],td:["gesamtabweichungsdistanz","total deviation distance"]};
+function csvRows(t){
+ t=t.replace(/^﻿/,"");const out=[];let row=[],f="",q=false;
+ for(let i=0;i<t.length;i++){const c=t[i];
+  if(q){if(c=='"'){if(t[i+1]=='"'){f+='"';i++;}else q=false;}else f+=c;}
+  else if(c=='"')q=true;
+  else if(c==","){row.push(f);f="";}
+  else if(c=="\n"){row.push(f);f="";if(row.some(v=>v.trim()!=""))out.push(row);row=[];}
+  else if(c!="\r")f+=c;}
+ row.push(f);if(row.some(v=>v.trim()!=""))out.push(row);
+ return out;}
+function r10Date(v){
+ /* "08/04/26 15:29:11 PM" -> Datum + Zeitstempel. AM/PM wird ignoriert,
+    die Uhrzeit steht bereits im 24-Stunden-Format. */
+ const m=String(v).match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s+(\d{1,2}):(\d{2}):(\d{2})/);
+ if(!m)return null;
+ let y=+m[3];if(y<100)y+=2000;
+ const d=new Date(y,+m[1]-1,+m[2],+m[4],+m[5],+m[6]);
+ const iso=y+"-"+String(+m[1]).padStart(2,"0")+"-"+String(+m[2]).padStart(2,"0");
+ return {iso,ts:d.getTime()};}
+function importR10(text){
+ const rows=csvRows(text);
+ if(rows.length<3)return {err:"Datei enthält keine Schläge"};
+ const head=rows[0].map(h=>h.trim().toLowerCase().replace(/​/g,""));
+ const idx={};
+ for(const k in R10COL){idx[k]=head.findIndex(h=>R10COL[k].some(n=>h===n));}
+ if(idx.club<0||idx.ca<0)return {err:"Unbekanntes Format – Spalten fehlen"};
+ const num=(r,k)=>{if(idx[k]<0)return null;const v=parseFloat(r[idx[k]]);return isFinite(v)?v:null;};
+ const rd=n=>n==null?null:Math.round(n*10)/10;
+ const have=new Set(DATA.map(d=>d.id));
+ const add=[];let skip=0,unknown={};
+ for(let i=1;i<rows.length;i++){
+  const r=rows[i];const dt=r10Date(r[idx.date]);
+  if(!dt)continue;                                   /* Einheitenzeile und Leerzeilen */
+  const raw=(r[idx.club]||"").trim();
+  const club=R10CLUB[raw.toLowerCase()]||raw;
+  if(!R10CLUB[raw.toLowerCase()])unknown[raw]=1;
+  const id="g"+dt.ts;
+  if(have.has(id)){skip++;continue;}
+  have.add(id);
+  add.push({id,date:dt.iso,club,series:"R10",
+   speed:rd(num(r,"bs")),carry:rd(num(r,"ca")),status:"clean",
+   set:cur.set,swing:DEFSWING,venue:cur.venue,bay:cur.bay||null,src:"r10",
+   /* Winkel statt Meter, weil er nicht von der Schlagweite abhaengt.
+      Schwellen 2,5 und 6 Grad — bei deinen Daten teilt das etwa in Drittel,
+      und bei 130 m Carry entspricht das rund 6 bzw. 14 m seitlich. */
+   dir:(function(){const a=num(r,"cang");if(a==null)return null;
+    return a<=-6?"ll":a<=-2.5?"l":a<2.5?"g":a<6?"r":"rr";})(),
+   r:{cs:rd(num(r,"cs")),sm:num(r,"sm")==null?null:Math.round(num(r,"sm")*1000)/1000,
+      aa:rd(num(r,"aa")),pa:rd(num(r,"pa")),fa:rd(num(r,"fa")),fp:rd(num(r,"fp")),
+      la:rd(num(r,"la")),ld:rd(num(r,"ld")),sp:num(r,"sp")==null?null:Math.round(num(r,"sp")),
+      spm:idx.spt>=0&&/gemessen|measured/i.test(r[idx.spt]||"")?1:0,
+      ap:rd(num(r,"ap")),sd:rd(num(r,"sd")),tot:rd(num(r,"tot")),td:rd(num(r,"td")),cang:rd(num(r,"cang"))}});
+ }
+ /* Schlägerkopfmessung des R10 springt gelegentlich. Wer mehr als 25 % vom
+    Median seines Schlägers abweicht, wird markiert und aus Smash/Tempo
+    herausgehalten – die Weiten bleiben unangetastet. */
+ const byClub={};add.forEach(a=>{if(a.r.cs)(byClub[a.club]=byClub[a.club]||[]).push(a.r.cs);});
+ for(const c in byClub){const m=med(byClub[c]);
+  add.forEach(a=>{if(a.club==c&&a.r.cs&&Math.abs(a.r.cs-m)/m>0.25)a.r.bad=1;});}
+ DATA=DATA.concat(add);save();syncOpts();
+ return {n:add.length,skip,bad:add.filter(a=>a.r.bad).length,unknown:Object.keys(unknown)};
+}
+function med(a){const b=a.slice().sort((x,y)=>x-y);if(!b.length)return NaN;const h=b.length>>1;return b.length%2?b[h]:(b[h-1]+b[h])/2;}
+
+/* ---- R10-Auswertung ---- */
+let r10F={club:"all"};
+function r10Pool(){return DATA.filter(x=>x.r&&(statsF.day=="all"||x.date==statsF.day));}
+function renderDir(){
+ const base=DATA.filter(x=>(statsF.day=="all"||x.date==statsF.day)&&(statsF.set=="all"||setOf(x)==statsF.set)
+   &&(statsF.swing=="all"||swingOf(x)==statsF.swing)&&(statsF.venue=="all"||(x.venue||"")==statsF.venue));
+ const wd=base.filter(x=>x.dir&&dirW(x.dir)!=null);
+ if(!wd.length){$("#dirCard").style.display="none";return;}
+ $("#dirCard").style.display="";
+ const n=wd.length;
+ const share=f=>(100*wd.filter(f).length/n).toFixed(0);
+ /* Tendenz = Mittel der Gewichte (-2..+2). Trennt Schiefe von Streuung:
+    zweimal weit links und zweimal weit rechts geben Tendenz 0, aber 100 % weit daneben. */
+ const tend=mean(wd.map(x=>dirW(x.dir)));
+ $("#dirKpis").innerHTML=[["mit Richtung",n,""],["gerade",share(x=>x.dir=="g"),"%"],
+   ["weit daneben",share(x=>Math.abs(dirW(x.dir))==2),"%"],
+   ["Tendenz",(tend>0?"+":"")+tend.toFixed(2),""]]
+   .map(([l,v,u])=>`<div class="kpi"><div class="lbl">${l}</div><div class="v">${v}<small>${u?" "+u:""}</small></div></div>`).join("");
+ const clubs=[...new Set(wd.map(x=>x.club))];
+ $("#dirTbl tbody").innerHTML=clubs.map(cl=>{
+  const a2=wd.filter(x=>x.club==cl),tot=base.filter(x=>x.club==cl).length;
+  const p=k=>(100*a2.filter(x=>x.dir==k).length/a2.length).toFixed(0);
+  const far=(100*a2.filter(x=>Math.abs(dirW(x.dir))==2).length/a2.length).toFixed(0);
+  const t=mean(a2.map(x=>dirW(x.dir)));
+  const lab=t>=0.4?"rechts":t<=-0.4?"links":"ausgeglichen";
+  const col=t>=0.4?"#ffb454":t<=-0.4?"#5cc8ff":"var(--tracer)";
+  return `<tr><td style="color:${colFor(cl)}">${cl}</td><td>${a2.length} von ${tot}</td>
+   <td>${p("ll")} %</td><td>${p("l")} %</td><td class="tracerTxt">${p("g")} %</td><td>${p("r")} %</td><td>${p("rr")} %</td>
+   <td>${far} %</td><td style="color:${col}">${lab} ${(t>0?"+":"")+t.toFixed(2)}</td></tr>`;}).join("");
+ const q=base.length?Math.round(100*n/base.length):0;
+ $("#dirHint").textContent="Richtung erfasst bei "+n+" von "+base.length+" Schlägen ("+q+" %). "
+  +(q<70?"Bei dieser Quote sind die Prozente nur ein Anhaltspunkt — nicht erfasste Schläge fehlen, und die fehlen selten zufällig. ":"")
+  +"Tendenz ist das Mittel der Stufen von −2 (weit links) bis +2 (weit rechts): sie zeigt die Schieflage, nicht die Streuung. "
+  +"R10-Schläge werden aus dem Abweichungswinkel eingestuft — bis 2,5° gerade, bis 6° leicht, darüber weit.";
+}
+function renderR10(){
+ const all=r10Pool();
+ const cards=["#r10Card","#r10PatCard","#r10PathCard"];
+ if(!all.length){cards.forEach(c=>$(c).style.display="none");return;}
+ cards.forEach(c=>$(c).style.display="");
+ const clubs=[...new Set(all.map(x=>x.club))];
+ const sel=$("#r10Club");
+ if(sel.options.length!=clubs.length+1||![...sel.options].slice(1).every((o,i)=>o.value==clubs[i]))
+  sel.innerHTML='<option value="all">Alle Schläger</option>'+clubs.map(c=>`<option value="${c}">${c}</option>`).join("");
+ sel.value=r10F.club;
+ const d=r10F.club=="all"?all:all.filter(x=>x.club==r10F.club);
+ const g=k=>d.map(x=>x.r[k]).filter(v=>v!=null);
+ const pa=g("pa"),fp=g("fp"),sm=d.filter(x=>!x.r.bad).map(x=>x.r.sm).filter(v=>v!=null);
+ const out=pa.length?100*pa.filter(v=>v<0).length/pa.length:NaN;
+ const k=[["Schläge",d.length,""],["Bahn",pa.length?med(pa).toFixed(1):"–","°"],
+          ["Fläche zur Bahn",fp.length?(med(fp)>0?"+":"")+med(fp).toFixed(1):"–","°"],
+          ["von aussen",isFinite(out)?out.toFixed(0):"–","%"],
+          ["Smash",sm.length?med(sm).toFixed(2):"–",""]];
+ $("#r10Kpis").innerHTML=k.map(([l,v,u])=>`<div class="kpi"><div class="lbl">${l}</div><div class="v">${v}<small>${u?" "+u:""}</small></div></div>`).join("");
+ $("#r10Tbl tbody").innerHTML=clubs.map(cl=>{
+  const a=all.filter(x=>x.club==cl);
+  const ca=a.map(x=>x.carry).filter(v=>v!=null),sd=a.map(x=>x.r.sd).filter(v=>v!=null);
+  const gm=k2=>a.map(x=>x.r[k2]).filter(v=>v!=null);
+  const s2=a.filter(x=>!x.r.bad).map(x=>x.r.sm).filter(v=>v!=null);
+  const f=(v,n)=>isFinite(v)?v.toFixed(n):"–";
+  const sg=(v,n)=>isFinite(v)?(v>0?"+":"")+v.toFixed(n):"–";
+  return `<tr><td style="color:${colFor(cl)}">${cl}</td><td>${a.length}</td>
+   <td>${f(mean(ca),0)}</td><td>${f(pstd(ca),1)}</td>
+   <td>${sg(mean(sd),1)}</td><td>${f(pstd(sd),1)}</td>
+   <td>${f(med(s2),2)}</td><td>${f(med(gm("pa")),1)}</td><td>${sg(med(gm("fp")),1)}</td>
+   <td>${f(med(gm("la")),1)}</td><td>${f(med(gm("sp")),0)}</td></tr>`;}).join("");
+ $("#legR10").innerHTML=(r10F.club=="all"?clubs:[r10F.club]).map(c=>`<span><i style="background:${colFor(c)}"></i>${c}</span>`).join("");
+ cPattern($("#cPattern"),d.filter(x=>x.r.sd!=null&&x.carry!=null).map(x=>({x:x.r.sd,y:x.carry,c:colFor(x.club)})));
+ cPath($("#cPath"),d.filter(x=>x.r.pa!=null&&x.r.fp!=null).map(x=>({x:x.r.pa,y:x.r.fp,c:colFor(x.club)})));
+}
+function symRange(v){const m=Math.max(Math.abs(Math.min(...v)),Math.abs(Math.max(...v)))*1.12||10;return [-m,m];}
+function cPattern(cv,pts){const{x,w,h}=prep(cv);
+ if(!pts.length){x.fillStyle="#8fa395";x.fillText("Keine Daten",w/2-26,h/2);return;}
+ const P={l:34,r:10,t:10,b:22};const[xmn,xmx]=symRange(pts.map(p=>p.x));
+ const ys=pts.map(p=>p.y);let ymn=Math.min(...ys),ymx=Math.max(...ys);const py=(ymx-ymn)*.1||5;ymn-=py;ymx+=py;
+ const{X,Y}=frame(x,w,h,P,xmn,xmx,ymn,ymx,"m seitlich");
+ x.strokeStyle="#4a5a4a";x.lineWidth=2;x.beginPath();x.moveTo(X(0),P.t);x.lineTo(X(0),h-P.b);x.stroke();
+ pts.forEach(p=>{x.fillStyle=p.c;x.beginPath();x.arc(X(p.x),Y(p.y),4,0,7);x.fill();});}
+function cPath(cv,pts){const{x,w,h}=prep(cv);
+ if(!pts.length){x.fillStyle="#8fa395";x.fillText("Keine Daten",w/2-26,h/2);return;}
+ const P={l:34,r:10,t:10,b:22};const[xmn,xmx]=symRange(pts.map(p=>p.x));const[ymn,ymx]=symRange(pts.map(p=>p.y));
+ const{X,Y}=frame(x,w,h,P,xmn,xmx,ymn,ymx,"° Bahn");
+ x.fillStyle="#2b3a24";x.fillRect(X(-2),P.t,X(2)-X(-2),h-P.b-P.t);x.fillRect(P.l,Y(2),w-P.l-P.r,Y(-2)-Y(2));
+ x.strokeStyle="#4a5a4a";x.lineWidth=1.5;x.beginPath();
+ x.moveTo(X(0),P.t);x.lineTo(X(0),h-P.b);x.moveTo(P.l,Y(0));x.lineTo(w-P.r,Y(0));x.stroke();
+ pts.forEach(p=>{x.fillStyle=p.c;x.beginPath();x.arc(X(p.x),Y(p.y),4,0,7);x.fill();});}
 function show(v){activeView=v;$$(".view").forEach(s=>s.classList.toggle("on",s.id==v));$$("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.v==v));
  if(v=="vStats")renderStats();if(v=="vTrend")renderTrend();if(v=="vList")renderList();if(v=="vPlan")renderPlan();if(v=="vRange"){renderHero();renderRecent();renderPlanStrip();}}
 $$("#nav button").forEach(b=>b.onclick=()=>show(b.dataset.v));
@@ -727,7 +960,24 @@ $("#lSwing").onchange=e=>{listF.swing=e.target.value;renderList();};
 $("#lVenue").onchange=e=>{listF.venue=e.target.value;renderList();};
 $$("#tbl th[data-k]").forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(sortK==k)sortAsc=!sortAsc;else{sortK=k;sortAsc=true;}renderList();});
 $("#bExport").onclick=()=>{const b=new Blob([JSON.stringify(DATA,null,2)],{type:"application/json"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="golf_"+today()+".json";a.click();URL.revokeObjectURL(u);toast("Export erstellt");};
-$("#bImport").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const arr=JSON.parse(rd.result);if(!Array.isArray(arr))throw 0;DATA=arr.map(d=>({id:d.id||"i"+Math.random().toString(36).slice(2),date:d.date,club:d.club,series:d.series||"",speed:(d.speed==null||d.speed==="")?null:+d.speed,carry:(d.carry==null||d.carry==="")?null:+d.carry,status:d.status||"clean",set:d.set||DEFSET,swing:d.swing||DEFSWING,venue:d.venue||null,bay:d.bay||null,src:d.src||null}));save();syncOpts();show(activeView);toast("Import: "+DATA.length+" Schläge");}catch(x){toast("Import fehlgeschlagen");}};rd.readAsText(f);e.target.value="";};
+$("#r10Club").onchange=e=>{r10F.club=e.target.value;renderR10();};
+$("#bImport").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
+ rd.onload=()=>{const t=String(rd.result);
+  const isCsv=/\.csv$/i.test(f.name)||/schl\u00e4gerart|club type/i.test(t.slice(0,400));
+  if(isCsv){const r=importR10(t);
+   if(r.err){toast(r.err);return;}
+   show("vStats");
+   let m=r.n+" Schläge übernommen";
+   if(r.skip)m+=" · "+r.skip+" schon vorhanden";
+   if(r.bad)m+=" · "+r.bad+" mit fraglicher Schlägerkopfmessung";
+   toast(m);
+   if(r.unknown&&r.unknown.length)setTimeout(()=>toast("Unbekannter Schläger: "+r.unknown.join(", ")),2600);
+   return;}
+  try{const arr=JSON.parse(t);if(!Array.isArray(arr))throw 0;
+   DATA=arr.map(d=>({id:d.id||"i"+Math.random().toString(36).slice(2),date:d.date,club:d.club,series:d.series||"",speed:(d.speed==null||d.speed==="")?null:+d.speed,carry:(d.carry==null||d.carry==="")?null:+d.carry,status:d.status||"clean",set:d.set||DEFSET,swing:d.swing||DEFSWING,venue:d.venue||null,bay:d.bay||null,src:d.src||null,dir:d.dir||null,r:d.r||null}));
+   save();syncOpts();show(activeView);toast("Import: "+DATA.length+" Schläge");}
+  catch(x){toast("Import fehlgeschlagen");}};
+ rd.readAsText(f);e.target.value="";};
 $("#bClear").onclick=()=>{if(confirm("Wirklich ALLE Schläge löschen? Vorher exportieren!")){DATA=[];save();syncOpts();show(activeView);toast("Alles gelöscht");}};
 $("#bReset").onclick=()=>{if(confirm("Alle lokalen Daten durch die eingebauten "+SEED.length+" Schläge ersetzen? Aktuelle Daten vorher exportieren!")){try{localStorage.setItem(KEY+"_bak",localStorage.getItem(KEY)||"");}catch(e){}DATA=normSets(SEED.slice());try{localStorage.setItem(KEY+"_sv",SEEDVER);}catch(e){}save();syncOpts();show(activeView);toast("Zurückgesetzt: "+DATA.length+" Schläge");}};
 let rt;window.addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(()=>show(activeView),150);});
