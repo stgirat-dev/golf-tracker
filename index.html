@@ -221,7 +221,7 @@ canvas{width:100%;height:230px;display:block}
   <div class="card">
    <div class="h3">Session-Plan</div>
    <div class="statusrow" id="planSeg" style="margin-top:10px">
-    <div class="seg" data-p="s6">Nächste</div>
+    <div class="seg" data-p="s8">Nächste</div>
     <div class="seg" data-p="std">Standard</div>
     <div class="seg" data-p="off">Aus</div>
    </div>
@@ -650,6 +650,35 @@ let lastField=null;
 function refocus(){if(lastField)setTimeout(()=>{try{lastField.focus();}catch(e){}},0);}
 
 const PLANS={
+ s8:{name:"Wedge-Matrix neu · und die 30-Meter-Lücke",
+  intro:"Die alte Wedge-Matrix ist tot: sie stammt von vor deinem Leistungssprung, und die Teilschwung-Stufen widersprechen sich (9 Uhr kam länger heraus als 10:30, bei beiden Wedges). Diese Session baut sie neu auf — auf demselben Messgerät wie alles andere. Der R10 läuft mit und macht alles, mit einer Ausnahme: im Ankerblock A tippst du jeden Schlag hier ein, Carry UND Ballgeschwindigkeit von der Anzeige. Nur diese zehn, damit die Box geeicht ist. Boxnummer notieren. Vor jedem Blockwechsel den Schläger in der Garmin-App umstellen. Anker immer mit demselben Schläger — am 17.08. ist genau das schiefgegangen. Ziel sind rund 40 Minuten; danach baust du nachweislich ab.",
+  blocks:[
+   {set:"takomo_201",club:"9er",n:10,tag:"Einschlagen · zählt nicht"},
+   {set:"takomo_201",club:"7er",n:10,tag:"Anker A · HIER eintippen: Carry + Ballgeschwindigkeit"},
+   {set:"srixon_i701",club:"52°",n:12,tag:"voll · zuletzt am 04.08. gemessen"},
+   {set:"srixon_i701",club:"56°",n:12,tag:"voll · zuletzt am 30.07. gemessen"},
+   {set:"takomo_201",club:"PW",n:10,tag:"voll · der Ankerwert der Matrix"},
+   {set:"takomo_201",club:"7er",n:8,tag:"Anker B · nur R10"},
+   {set:"takomo_201",club:"PW",n:12,swing:"1030",tag:"10:30 · schliesst die Lücke 85–115 m"},
+   {set:"srixon_i701",club:"52°",n:12,swing:"1030",tag:"10:30 · die widersprüchliche Stufe"},
+   {set:"srixon_i701",club:"56°",n:10,swing:"1030",tag:"10:30"},
+   {set:"takomo_201",club:"7er",n:8,tag:"Anker C · sagt, ob die Session verwertbar war"}]},
+ s7:{name:"Kurzes Ende · PW und 9er",
+  intro:"Der R10 läuft mit und macht alles — mit einer Ausnahme: beim Anker A tippst du jeden Schlag hier ein, und zwar Carry UND Ballgeschwindigkeit von der Anzeige. Nur diese zehn. Damit ist die Box gemessen statt geschätzt, egal welche du erwischst. Notier dir die Boxnummer. Vor jedem Blockwechsel den Schläger in der Garmin-App umstellen und kontrollieren — sieben Takomo-Eisen heissen sieben Verwechslungschancen. Schlechte Schläge im R10 als BAD markieren. PW und 9er kommen bewusst zuerst: dort fehlen die Daten, und dort bist du noch frisch.",
+  blocks:[
+   {set:"takomo_201",club:"9er",n:15,tag:"Einschlagen · zählt nicht"},
+   {set:"takomo_201",club:"7er",n:10,tag:"Anker A · HIER eintippen: Carry + Ballgeschwindigkeit"},
+   {set:"takomo_201",club:"PW",n:16,tag:"46° · grösster weisser Fleck, null Schläge bisher"},
+   {set:"takomo_201",club:"9er",n:16,tag:"40° · bisher nur 5 Schläge"},
+   {set:"takomo_201",club:"7er",n:8,tag:"Anker B · nur R10"},
+   {set:"takomo_201",club:"8er",n:10,tag:"35° · bestätigt die 25-m-Lücke zum 9er"},
+   {set:"takomo_201",club:"6er",n:4,tag:"27° · Runde 1 von 2"},
+   {set:"takomo_201",club:"5er",n:4,tag:"23° · Runde 1"},
+   {set:"takomo_201",club:"4er",n:4,tag:"20° · Runde 1"},
+   {set:"takomo_201",club:"6er",n:3,tag:"27° · Runde 2"},
+   {set:"takomo_201",club:"5er",n:3,tag:"23° · Runde 2"},
+   {set:"takomo_201",club:"4er",n:3,tag:"20° · Runde 2 · abwechselnd, damit Müdigkeit alle drei gleich trifft"},
+   {set:"takomo_201",club:"7er",n:8,tag:"Anker C · sagt mir, wie stark du über die Session abbaust"}]},
  s6:{name:"Erster Einsatz · Takomo",
   intro:"Nur den R10 laufen lassen, nichts hier eintippen — er misst Weite, Abflug, Spin, Smash und Richtung selbst; getippte Werte würden die Auswertung über die Anlagenformel verfälschen. Der Srixon-7er (34°) ist Anker und Vergleich zugleich: sein Loftzwilling ist der Takomo-8er mit 35°. Vor dem ersten Schlag das Gerät exakt auf die Ziellinie ausrichten und die eingestanzten Lofts kontrollieren. Nach jedem Takomo-Block ein Wort notieren: besser, gleich oder schlechter.",
   blocks:[
@@ -694,7 +723,7 @@ const PLANS={
    {set:"srixon_i701",club:"7er",n:10,tag:"Anker Ende"}]}};
 let planId=(function(){try{let v=localStorage.getItem(KEY+"_plan")||"off";
  /* s3 ist ausgelaufen: wer es aktiv hatte, bekommt das Nachfolgeprogramm */
- if(v=="s3"||v=="s4"||v=="s5"){v="s6";localStorage.setItem(KEY+"_plan",v);localStorage.removeItem(KEY+"_planT");}
+ if(v=="s3"||v=="s4"||v=="s5"||v=="s6"||v=="s7"){v="s8";localStorage.setItem(KEY+"_plan",v);localStorage.removeItem(KEY+"_planT");}
  return v;}catch(e){return "off";}})();
 let planT=(function(){try{return +localStorage.getItem(KEY+"_planT")||0;}catch(e){return 0;}})();
 /* Der Zeitstempel steckt in der ID neu erfasster Schlaege ("s"+Date.now()+...).
