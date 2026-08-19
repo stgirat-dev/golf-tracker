@@ -221,7 +221,7 @@ canvas{width:100%;height:230px;display:block}
   <div class="card">
    <div class="h3">Session-Plan</div>
    <div class="statusrow" id="planSeg" style="margin-top:10px">
-    <div class="seg" data-p="s8">Nächste</div>
+    <div class="seg" data-p="s10">Nächste</div>
     <div class="seg" data-p="std">Standard</div>
     <div class="seg" data-p="off">Aus</div>
    </div>
@@ -650,6 +650,21 @@ let lastField=null;
 function refocus(){if(lastField)setTimeout(()=>{try{lastField.focus();}catch(e){}},0);}
 
 const PLANS={
+ s10:{name:"Lange Session · PW-Stufen, Wedges, Radar-Kalibrierung",
+  intro:"Drei Messziele in einer Session. Ablauf strikt einhalten, die Reihenfolge ist nicht beliebig.\n\n1) EINSCHLAGEN: alle zehn auf eine feste Zieltafel. Danach den MEDIAN der Seitenablage anschauen, nicht den letzten Ball, und den Radar entsprechend korrigieren.\n\n2) DIE DREI PW-BLÖCKE laufen direkt hintereinander. Gemessen wird nicht die Distanz, sondern das Verhältnis voll : 10:30 : 9 Uhr — jede Pause dazwischen geht als Drift in den Quotienten.\n\n3) KALIBRIERBLOCK am Schluss: 25 Schläge 9er auf dieselbe Tafel. Vor jedem Ablesen die eigene Seitenablage schätzen und ins Notizfeld tippen, dann erst aufs Display schauen. Reihenfolge zwingend, sonst ist die Kovarianz aufgebläht und die Varianzzerlegung wertlos.\n\nAnker A, B und C immer mit dem 9er. Rund 53 Minuten — ab Minute 50 fällt dein Smash erfahrungsgemäss ab, die Anker messen das mit.",
+  blocks:[
+   {set:"takomo_201",club:"9er",n:10,tag:"Einschlagen auf die Tafel · danach Radar nach dem Median korrigieren · zählt nicht"},
+   {set:"takomo_201",club:"9er",n:8,tag:"Anker A"},
+   {set:"takomo_201",club:"PW",n:10,tag:"voll · Referenzwert für die Teilschwünge"},
+   {set:"takomo_201",club:"PW",n:12,swing:"1030",tag:"10:30 · die fehlende Stufe bei ~100 m"},
+   {set:"takomo_201",club:"PW",n:12,swing:"9uhr",tag:"9 Uhr · erwartet ~90 m, prüft das 0,80-Verhältnis"},
+   {set:"takomo_201",club:"9er",n:8,tag:"Anker B"},
+   {set:"srixon_i701",club:"52°",n:12,tag:"voll · zuletzt am 04.08. gemessen"},
+   {set:"srixon_i701",club:"56°",n:12,tag:"voll · zuletzt am 30.07. gemessen"},
+   {set:"srixon_i701",club:"52°",n:12,swing:"1030",tag:"10:30 · die widersprüchliche Stufe"},
+   {set:"srixon_i701",club:"56°",n:10,swing:"1030",tag:"10:30"},
+   {set:"takomo_201",club:"9er",n:8,tag:"Anker C · trägt die Driftkorrektur für die Wedges"},
+   {set:"takomo_201",club:"9er",n:25,tag:"KALIBRIERBLOCK · erst schätzen und tippen, dann ablesen"}]},
  s8:{name:"Wedge-Matrix neu · und die 30-Meter-Lücke",
   intro:"Die alte Wedge-Matrix ist tot: sie stammt von vor deinem Leistungssprung, und die Teilschwung-Stufen widersprechen sich (9 Uhr kam länger heraus als 10:30, bei beiden Wedges). Diese Session baut sie neu auf — auf demselben Messgerät wie alles andere. Der R10 läuft mit und macht alles, mit einer Ausnahme: im Ankerblock A tippst du jeden Schlag hier ein, Carry UND Ballgeschwindigkeit von der Anzeige. Nur diese zehn, damit die Box geeicht ist. Boxnummer notieren. Vor jedem Blockwechsel den Schläger in der Garmin-App umstellen. Anker immer mit demselben Schläger — am 17.08. ist genau das schiefgegangen. Ziel sind rund 40 Minuten; danach baust du nachweislich ab.",
   blocks:[
@@ -723,7 +738,7 @@ const PLANS={
    {set:"srixon_i701",club:"7er",n:10,tag:"Anker Ende"}]}};
 let planId=(function(){try{let v=localStorage.getItem(KEY+"_plan")||"off";
  /* s3 ist ausgelaufen: wer es aktiv hatte, bekommt das Nachfolgeprogramm */
- if(v=="s3"||v=="s4"||v=="s5"||v=="s6"||v=="s7"){v="s8";localStorage.setItem(KEY+"_plan",v);localStorage.removeItem(KEY+"_planT");}
+ if(v=="s3"||v=="s4"||v=="s5"||v=="s6"||v=="s7"||v=="s8"||v=="s9"){v="s10";localStorage.setItem(KEY+"_plan",v);localStorage.removeItem(KEY+"_planT");}
  return v;}catch(e){return "off";}})();
 let planT=(function(){try{return +localStorage.getItem(KEY+"_planT")||0;}catch(e){return 0;}})();
 /* Der Zeitstempel steckt in der ID neu erfasster Schlaege ("s"+Date.now()+...).
