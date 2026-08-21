@@ -113,6 +113,7 @@ canvas{width:100%;height:230px;display:block}
 .pblk.done .ct{color:var(--mut)}
 .go{background:var(--s2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 11px;font-size:13px;font-weight:600;cursor:pointer}
 #dirChips{flex-wrap:wrap;overflow-x:visible;justify-content:space-between;gap:6px}
+#swingChips{flex-wrap:wrap;overflow-x:visible;justify-content:space-between;gap:6px}
 #dirChips .chip{padding:8px 0;font-size:13.5px;flex:1 1 0;min-width:62px;text-align:center}
 #dirChips .chip.on[data-d="ll"]{border-color:#3aa0d8;color:#3aa0d8}
 #dirChips .chip.on[data-d="l"]{border-color:#5cc8ff;color:#5cc8ff}
@@ -153,6 +154,32 @@ canvas{width:100%;height:230px;display:block}
 .cmpdelta{font-weight:700}
 .cmpdelta.up{color:var(--good,#86e8b0)}
 .cmpdelta.dn{color:var(--bad,#ff6b6b)}
+/* ---- Runde ---- */
+.stp{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+.stpl{flex:1;font-size:15px;font-weight:600}
+.stpb{flex:0 0 auto;width:46px;height:46px;border-radius:12px;background:var(--s2);border:1px solid var(--line);color:var(--ink);font-size:24px;font-weight:700;line-height:1;cursor:pointer}
+.stpb:active{transform:scale(.94)}
+.stpv{flex:0 0 auto;width:44px;text-align:center;font-size:26px;font-weight:800}
+.rdpts{margin-top:12px;text-align:center;font-size:15px;font-weight:700;color:var(--tracer);background:var(--s2);border:1px solid var(--line);border-radius:11px;padding:11px}
+.rdrow{display:flex;align-items:center;gap:10px;padding:10px 2px;border-top:1px solid var(--line);cursor:pointer}
+.rdrow:first-child{border-top:none}
+.rdrow .rdd{font-size:13px;color:var(--mut);min-width:74px}
+.rdrow .rdn{font-weight:700;font-size:14px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rdrow .rdp{font-weight:800;font-size:17px;color:var(--tracer);min-width:36px;text-align:right}
+.rdrow .rds{font-size:13px;color:var(--mut);min-width:40px;text-align:right;padding-right:2px}
+.tbl input.cin{width:52px;background:var(--s2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:7px 4px;font-size:15px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums}
+.tbl input.cin:focus{outline:none;border-color:var(--tracer)}
+.tbl tr.hl td{background:rgba(205,242,78,.06)}
+.bd{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:11px 0 2px}
+.bd div{background:var(--s2);border:1px solid var(--line);border-radius:11px;padding:10px 8px;text-align:center}
+.bd div{display:flex;flex-direction:column}
+.bd .bv{font-size:20px;font-weight:800;margin-top:auto;padding-top:4px}
+.tbl.cmp th,.tbl.cmp td{padding:7px 2px;font-size:12px}
+.tbl.cmp th{font-size:9.5px;letter-spacing:.2px}
+.tbl.cmp input.cin{width:40px;padding:6px 2px;font-size:14px}
+.rdbtns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.rdbtns button{padding:12px 4px;font-size:14px}
+.rdnote{font-size:13px;color:var(--mut);line-height:1.55;margin-top:10px}
 </style>
 </head>
 <body>
@@ -349,9 +376,130 @@ canvas{width:100%;height:230px;display:block}
 </div>
 
 <!-- bottom nav -->
+ <!-- ===== RUNDE ===== -->
+ <section class="view" id="vRound">
+
+  <!-- Start / Liste -->
+  <div id="rdHome">
+   <div class="card">
+    <div class="lbl" style="margin-bottom:9px">Neue Runde</div>
+    <div class="chips" id="rdCourseChips"></div>
+    <div class="twocol" style="margin-top:9px">
+     <div><div class="inlbl">Datum</div><input type="date" class="in" id="rdDate" style="font-size:16px;padding:11px"></div>
+     <div><div class="inlbl">Vorgabe (CH)</div><input type="number" class="in" id="rdCh" inputmode="numeric" style="padding:11px"></div>
+    </div>
+    <div class="hint" id="rdChHint"></div>
+    <button class="addbtn" id="rdStart">Runde starten</button>
+   </div>
+
+   <div class="card">
+    <div class="lbl" style="margin-bottom:4px">Gespielte Runden</div>
+    <div id="rdList"></div>
+   </div>
+
+   <div class="card">
+    <div class="lbl" style="margin-bottom:9px">Plätze</div>
+    <div id="rdCourseList"></div>
+    <button class="go" id="rdNewCourse" style="margin-top:10px;width:100%;padding:11px">Neuen Platz anlegen</button>
+   </div>
+
+   <div class="card">
+    <div class="lbl" style="margin-bottom:9px">Runden sichern</div>
+    <div style="display:flex;gap:8px">
+     <button class="go" id="rdExport" style="flex:1;padding:11px">Export</button>
+     <label class="go" style="flex:1;padding:11px;text-align:center;margin:0">Import<input type="file" id="rdImport" accept=".json,application/json" hidden></label>
+    </div>
+   </div>
+  </div>
+
+  <!-- Live-Erfassung -->
+  <div id="rdPlay" style="display:none">
+   <div class="card hero" style="padding:15px 16px 14px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+     <div>
+      <div class="lbl" id="rdPlayCourse">–</div>
+      <div class="big num" style="font-size:38px"><small style="margin-right:4px">Loch</small><span id="rdHoleNo">1</span><small> / <span id="rdHoleTot">9</span></small></div>
+     </div>
+     <div style="text-align:right">
+      <div class="lbl">Punkte</div>
+      <div class="num tracerTxt" style="font-size:34px;font-weight:800;line-height:1.1" id="rdRunPts">0</div>
+     </div>
+    </div>
+    <div class="meta num">
+     <div><span class="lbl">Par</span><span class="v" id="rdHolePar">–</span></div>
+     <div><span class="lbl">Index</span><span class="v" id="rdHoleIdx">–</span></div>
+     <div><span class="lbl">Vorgabe</span><span class="v tracerTxt" id="rdHoleVor">–</span></div>
+     <div><span class="lbl">Netto-Par</span><span class="v" id="rdHoleNet">–</span></div>
+     <div><span class="lbl">Länge</span><span class="v" id="rdHoleM">–</span></div>
+    </div>
+    <div class="pbarw"><div class="pbar" id="rdBar" style="width:0%"></div></div>
+   </div>
+
+   <div class="card">
+    <div class="stp" data-f="s"><div class="stpl">Schläge</div><button class="stpb" data-d="-1">−</button><div class="stpv num" id="rdVs">0</div><button class="stpb" data-d="1">+</button></div>
+    <div class="stp" data-f="p"><div class="stpl">Putts</div><button class="stpb" data-d="-1">−</button><div class="stpv num" id="rdVp">0</div><button class="stpb" data-d="1">+</button></div>
+    <div class="stp" data-f="pen" style="border-bottom:none"><div class="stpl">Strafschläge</div><button class="stpb" data-d="-1">−</button><div class="stpv num" id="rdVpen">0</div><button class="stpb" data-d="1">+</button></div>
+    <div class="rdpts" id="rdHolePts">–</div>
+   </div>
+
+   <div style="display:flex;gap:8px;margin-bottom:13px">
+    <button class="go" id="rdPrev" style="flex:1;padding:14px;font-size:15px">Zurück</button>
+    <button class="go" id="rdNext" style="flex:2;padding:14px;font-size:15px;border-color:var(--tracer);color:var(--tracer)">Weiter</button>
+   </div>
+   <div class="rdbtns">
+    <button class="go" id="rdToTable">Tabelle</button>
+    <button class="go" id="rdFinish">Beenden</button>
+    <button class="go" id="rdAbort" style="color:var(--bad);border-color:#3a2626">Verwerfen</button>
+   </div>
+  </div>
+
+  <!-- Tabellen-Erfassung -->
+  <div id="rdTable" style="display:none">
+   <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+     <div><div class="lbl" id="rdTblCourse">–</div><div class="h3" style="margin:2px 0 0" id="rdTblSum">–</div></div>
+     <button class="go" id="rdToPlay">Live</button>
+    </div>
+    <div class="scroll"><table class="tbl cmp" id="rdTbl"></table></div>
+   </div>
+   <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px">
+    <button class="go" id="rdTblBack" style="padding:13px 4px">Zurück</button>
+    <button class="go" id="rdTblFinish" style="padding:13px 4px;border-color:var(--tracer);color:var(--tracer)">Runde beenden</button>
+   </div>
+  </div>
+
+  <!-- Auswertung -->
+  <div id="rdDetail" style="display:none"></div>
+
+  <!-- Platz-Editor -->
+  <div id="rdEdit" style="display:none">
+   <div class="card">
+    <div class="lbl" style="margin-bottom:9px" id="rdEditTitle">Platz anlegen</div>
+    <div class="twocol">
+     <div><div class="inlbl">Name</div><input type="text" class="in" id="ceName" style="font-size:16px;padding:11px"></div>
+     <div><div class="inlbl">Abschlag</div><input type="text" class="in" id="ceTee" style="font-size:16px;padding:11px" placeholder="Gelb"></div>
+    </div>
+    <div class="twocol" style="margin-top:9px">
+     <div><div class="inlbl">Löcher</div>
+      <div class="statusrow" style="margin-top:0"><div class="seg on" data-hn="9">9</div><div class="seg" data-hn="18">18</div></div></div>
+     <div><div class="inlbl">Slope</div><input type="number" class="in" id="ceSlope" inputmode="numeric" style="padding:11px" placeholder="113"></div>
+    </div>
+    <div class="hint">Slope nur für das Score Differential. Leer lassen, wenn unbekannt.</div>
+    <div class="scroll" style="margin-top:11px"><table class="tbl cmp" id="ceTbl"></table></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+     <button class="addbtn" id="ceSave" style="margin:0;flex:2">Speichern</button>
+     <button class="go" id="ceCancel" style="flex:1;padding:14px">Abbrechen</button>
+    </div>
+    <button class="go" id="ceDelete" style="width:100%;margin-top:8px;padding:11px;color:var(--bad);border-color:#3a2626;display:none">Platz löschen</button>
+   </div>
+  </div>
+
+ </section>
+
 <nav class="nav" id="nav">
  <button class="on" data-v="vRange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20 Q12 2 20 12" stroke-linecap="round"/><circle cx="20" cy="12" r="2" fill="currentColor" stroke="none"/></svg>Range</button>
  <button data-v="vPlan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M4 12h10M4 18h7" stroke-linecap="round"/><path d="M17 16.5l1.8 1.8L22 15" stroke-linecap="round" stroke-linejoin="round"/></svg>Plan</button>
+ <button data-v="vRound"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 21V4.5a1 1 0 0 1 1.5-.87l8 4.6a1 1 0 0 1 0 1.74l-8 4.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Runde</button>
  <button data-v="vStats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="4" height="9" rx="1"/><rect x="10" y="6" width="4" height="14" rx="1"/><rect x="16" y="9" width="4" height="11" rx="1"/></svg>Stats</button>
  <button data-v="vTrend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16 L9 10 L13 13 L20 5" stroke-linecap="round" stroke-linejoin="round"/></svg>Verlauf</button>
  <button data-v="vList"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7h14M5 12h14M5 17h14" stroke-linecap="round"/></svg>Liste</button>
@@ -372,7 +520,7 @@ const setShort=k=>(SETS[k]&&SETS[k].short)||k;
 const setCol=k=>(SETS[k]&&SETS[k].col)||colFor(k);
 const setOf=r=>r.set||DEFSET;
 function setsIn(a){const u=[...new Set(a.map(setOf))];return[...Object.keys(SETS).filter(k=>u.includes(k)),...u.filter(k=>!SETS[k])];}
-const SWINGS=[{k:"voll",short:"voll",col:"#cdf24e"},{k:"1030",short:"10:30",col:"#ffb454"},{k:"9uhr",short:"9 Uhr",col:"#5cc8ff"}];
+const SWINGS=[{k:"voll",short:"voll",col:"#cdf24e"},{k:"11uhr",short:"11 Uhr",col:"#e8d44a"},{k:"1030",short:"10:30",col:"#ffb454"},{k:"9uhr",short:"9 Uhr",col:"#5cc8ff"}];
 const DEFSWING="voll";
 const VENUES=[{k:"adlisberg",short:"Adlisberg",col:"#cdf24e"},{k:"andere",short:"Andere",col:"#5cc8ff"}];
 const DEFVENUE="adlisberg";
@@ -503,7 +651,7 @@ function buildChips(){
  $$("#venueChips .chip").forEach(el=>el.onclick=()=>{cur.venue=el.dataset.vn;
   try{localStorage.setItem(KEY+"_venue",cur.venue);}catch(e){}buildChips();refocus();});
  $("#iBay").value=cur.bay||"";
- $("#swingChips").innerHTML=SWINGS.map(w=>`<div class="chip ${w.k==cur.swing?"on":""}" data-w="${w.k}" style="padding:7px 14px;font-size:14px">${w.short}</div>`).join("");
+ $("#swingChips").innerHTML=SWINGS.map(w=>`<div class="chip ${w.k==cur.swing?"on":""}" data-w="${w.k}" style="padding:7px 0;font-size:13.5px;flex:1 1 0;min-width:52px;text-align:center">${w.short}</div>`).join("");
  $$("#swingChips .chip").forEach(el=>el.onclick=()=>{cur.swing=el.dataset.w;
   try{localStorage.setItem(KEY+"_swing",cur.swing);}catch(e){}
   buildChips();renderHero();renderRecent();renderPlanStrip();refocus();});
@@ -656,8 +804,9 @@ const PLANS={
    {set:"takomo_201",club:"9er",n:10,tag:"Einschlagen auf die Tafel · danach Radar nach dem Median korrigieren · zählt nicht"},
    {set:"takomo_201",club:"9er",n:8,tag:"Anker A"},
    {set:"takomo_201",club:"PW",n:10,tag:"voll · Referenzwert für die Teilschwünge"},
-   {set:"takomo_201",club:"PW",n:12,swing:"1030",tag:"10:30 · die fehlende Stufe bei ~100 m"},
-   {set:"takomo_201",club:"PW",n:12,swing:"9uhr",tag:"9 Uhr · erwartet ~90 m, prüft das 0,80-Verhältnis"},
+   {set:"takomo_201",club:"PW",n:12,swing:"11uhr",tag:"11 Uhr · die eigentliche Lücke, erwartet ~95 m"},
+   {set:"takomo_201",club:"PW",n:12,swing:"1030",tag:"10:30 · gemessen 85 m, bestätigt die Stufe"},
+   {set:"takomo_201",club:"PW",n:12,swing:"9uhr",tag:"9 Uhr · gemessen 64,5 m, bestätigt die Stufe"},
    {set:"takomo_201",club:"9er",n:8,tag:"Anker B"},
    {set:"srixon_i701",club:"52°",n:12,tag:"voll · zuletzt am 04.08. gemessen"},
    {set:"srixon_i701",club:"56°",n:12,tag:"voll · zuletzt am 30.07. gemessen"},
@@ -998,7 +1147,7 @@ function cPath(cv,pts){const{x,w,h}=prep(cv);
  x.moveTo(X(0),P.t);x.lineTo(X(0),h-P.b);x.moveTo(P.l,Y(0));x.lineTo(w-P.r,Y(0));x.stroke();
  pts.forEach(p=>{x.fillStyle=p.c;x.beginPath();x.arc(X(p.x),Y(p.y),4,0,7);x.fill();});}
 function show(v){activeView=v;$$(".view").forEach(s=>s.classList.toggle("on",s.id==v));$$("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.v==v));
- if(v=="vStats")renderStats();if(v=="vTrend")renderTrend();if(v=="vList")renderList();if(v=="vPlan")renderPlan();if(v=="vRange"){renderHero();renderRecent();renderPlanStrip();}}
+ if(v=="vStats")renderStats();if(v=="vTrend")renderTrend();if(v=="vList")renderList();if(v=="vPlan")renderPlan();if(v=="vRound")rdShow(rdMode);if(v=="vRange"){renderHero();renderRecent();renderPlanStrip();}}
 $$("#nav button").forEach(b=>b.onclick=()=>show(b.dataset.v));
 
 /* events */
@@ -1047,6 +1196,327 @@ $("#bImport").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new F
  rd.readAsText(f);e.target.value="";};
 $("#bClear").onclick=()=>{if(confirm("Wirklich ALLE Schläge löschen? Vorher exportieren!")){DATA=[];save();syncOpts();show(activeView);toast("Alles gelöscht");}};
 $("#bReset").onclick=()=>{if(confirm("Alle lokalen Daten durch die eingebauten "+SEED.length+" Schläge ersetzen? Aktuelle Daten vorher exportieren!")){try{localStorage.setItem(KEY+"_bak",localStorage.getItem(KEY)||"");}catch(e){}DATA=normSets(SEED.slice());try{localStorage.setItem(KEY+"_sv",SEEDVER);}catch(e){}save();syncOpts();show(activeView);toast("Zurückgesetzt: "+DATA.length+" Schläge");}};
+
+/* ===================== RUNDE (Platzspiel) ===================== */
+const RKEY=KEY+"_rounds", CKEY=KEY+"_courses";
+
+const SEEDCOURSES=[{
+ id:"augwil_gelb", name:"Golf Augwil", tee:"Gelb", slope:136, seed:true,
+ holes:[{n:1,par:5,idx:9,m:444},{n:2,par:4,idx:3,m:324},{n:3,par:3,idx:13,m:169},
+        {n:4,par:4,idx:11,m:334},{n:5,par:5,idx:5,m:459},{n:6,par:4,idx:7,m:338},
+        {n:7,par:3,idx:15,m:159},{n:8,par:5,idx:1,m:446},{n:9,par:3,idx:17,m:118}]
+}];
+const SEEDROUNDS=[{
+ id:"augwil_20260820", date:"2026-08-20", courseId:"augwil_gelb",
+ courseName:"Golf Augwil", tee:"Gelb", ch:33, slope:136, seed:true,
+ holes:[{n:1,s:7,p:2,pen:0},{n:2,s:7,p:2,pen:0},{n:3,s:4,p:3,pen:0},
+        {n:4,s:7,p:2,pen:0},{n:5,s:8,p:2,pen:0},{n:6,s:7,p:2,pen:0},
+        {n:7,s:6,p:3,pen:0},{n:8,s:6,p:1,pen:0},{n:9,s:7,p:1,pen:2}]
+}];
+
+function rdJson(k,fb){try{const s=localStorage.getItem(k);if(!s)return fb;const a=JSON.parse(s);return Array.isArray(a)?a:fb;}catch(e){return fb;}}
+function rdPut(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){toast("Speichern fehlgeschlagen");}}
+let COURSES=rdJson(CKEY,null), ROUNDS=rdJson(RKEY,null);
+if(!COURSES){COURSES=JSON.parse(JSON.stringify(SEEDCOURSES));rdPut(CKEY,COURSES);}
+if(!ROUNDS){ROUNDS=JSON.parse(JSON.stringify(SEEDROUNDS));rdPut(RKEY,ROUNDS);}
+function saveC(){rdPut(CKEY,COURSES);} function saveR(){rdPut(RKEY,ROUNDS);}
+function courseById(id){return COURSES.find(c=>c.id==id)||null;}
+function rid(){return "r"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+
+/* --- Vorgabeverteilung nach Stroke Index --- */
+function allocate(ch,holes){
+ const n=holes.length, out={};
+ if(!n)return out;
+ const neg=ch<0, a=Math.abs(ch);
+ const basis=Math.floor(a/n), rest=a%n;
+ const order=holes.slice().sort((x,y)=> neg ? y.idx-x.idx : x.idx-y.idx);
+ holes.forEach(h=>out[h.n]=basis);
+ for(let i=0;i<rest;i++) out[order[i].n]+=1;
+ if(neg) holes.forEach(h=>out[h.n]=-out[h.n]);
+ return out;
+}
+function holePts(par,vor,s){ if(!s)return null; return Math.max(0, 2+par+vor-s); }
+
+/* --- Auswertung einer Runde --- */
+function rdSummary(r){
+ const c=courseById(r.courseId);
+ const holes=(c&&c.holes)||r.holes.map(h=>({n:h.n,par:4,idx:h.n,m:null}));
+ const A=allocate(r.ch,holes);
+ const rows=holes.map(h=>{
+  const e=r.holes.find(x=>x.n==h.n)||{s:0,p:0,pen:0};
+  const s=+e.s||0, p=+e.p||0, pen=+e.pen||0;
+  const vor=A[h.n]||0;
+  return {n:h.n,par:h.par,idx:h.idx,m:h.m,vor:vor,net:h.par+vor,s:s,p:p,pen:pen,
+          bis:Math.max(0,s-p-pen), pts:holePts(h.par,vor,s)};
+ });
+ const done=rows.filter(x=>x.s>0);
+ const sum=(f)=>done.reduce((a,x)=>a+f(x),0);
+ const S={rows:rows,done:done.length,n:holes.length,
+  par:done.reduce((a,x)=>a+x.par,0), parAll:holes.reduce((a,x)=>a+x.par,0),
+  ch:r.ch, schlaege:sum(x=>x.s), putts:sum(x=>x.p), strafen:sum(x=>x.pen),
+  bis:sum(x=>x.bis), punkte:sum(x=>x.pts||0)};
+ S.zuPar=S.schlaege-S.par;
+ /* Gegenrechnung: ohne Strafschlaege und ohne Putts ueber 2 */
+ const extraPutts=done.reduce((a,x)=>a+Math.max(0,x.p-2),0);
+ S.extraPutts=extraPutts;
+ S.oSchlaege=S.schlaege-S.strafen-extraPutts;
+ S.oPunkte=done.reduce((a,x)=>a+Math.max(0,2+x.par+x.vor-(x.s-x.pen-Math.max(0,x.p-2))),0);
+ /* nach Par-Typ */
+ S.byPar={};
+ [3,4,5].forEach(p=>{const g=done.filter(x=>x.par==p);
+  if(g.length)S.byPar[p]={n:g.length,s:g.reduce((a,x)=>a+x.s,0),par:p*g.length,
+   pts:g.reduce((a,x)=>a+(x.pts||0),0),bis:g.reduce((a,x)=>a+x.bis,0)};});
+ /* Score Differential */
+ S.sd=null;
+ const slope=+(r.slope||(c&&c.slope)||0), hi=+(rdHi()||0);
+ if(slope>0 && hi>0 && S.done==S.n){
+  if(S.n==9){ const sd9=hi/2-(S.punkte-18)*113/slope;
+   S.sd={sd9:sd9, sd18:sd9+(hi*1.04+2.4)/2, slope:slope, hi:hi}; }
+  else if(S.n==18){ S.sd={sd18:hi-(S.punkte-36)*113/slope, slope:slope, hi:hi}; }
+ }
+ S.zumHcp=S.n==9?18:36;
+ return S;
+}
+function rdHi(){try{return +localStorage.getItem(KEY+"_hi")||0;}catch(e){return 0;}}
+function rdSetHi(v){try{localStorage.setItem(KEY+"_hi",String(v));}catch(e){}}
+
+/* --- Zustand --- */
+let rdMode="home", rdCur=null, rdHole=0, rdDetailId=null, rdEditId=null, rdCourseSel=null, rdEditHn=9, rdEditHoles=[];
+
+function rdShow(m){rdMode=m;
+ ["rdHome","rdPlay","rdTable","rdDetail","rdEdit"].forEach(id=>{const e=$("#"+id);if(e)e.style.display=(id=="rd"+m[0].toUpperCase()+m.slice(1))?"":"none";});
+ if(m=="home")renderRdHome(); if(m=="play")renderRdPlay(); if(m=="table")renderRdTable();
+ if(m=="detail")renderRdDetail(); if(m=="edit")renderCourseEdit();
+ window.scrollTo(0,0);
+}
+
+/* --- Home --- */
+function defCh(c){ const hi=rdHi(); if(!c)return ""; 
+ if(c.id=="augwil_gelb")return 33;
+ if(hi&&c.slope){const n=c.holes.length;return Math.round((n==9?hi/2:hi)*c.slope/113);} return ""; }
+function renderRdHome(){
+ if(!rdCourseSel||!courseById(rdCourseSel))rdCourseSel=COURSES.length?COURSES[0].id:null;
+ $("#rdCourseChips").innerHTML=COURSES.map(c=>`<div class="chip ${c.id==rdCourseSel?"on":""}" data-c="${c.id}">${c.name}${c.tee?" · "+c.tee:""} <span style="opacity:.6">${c.holes.length} L</span></div>`).join("")||`<span class="hint">Noch kein Platz angelegt.</span>`;
+ $$("#rdCourseChips .chip").forEach(el=>el.onclick=()=>{rdCourseSel=el.dataset.c;renderRdHome();});
+ const c=courseById(rdCourseSel);
+ if(!$("#rdDate").value)$("#rdDate").value=today();
+ $("#rdCh").value=defCh(c);
+ $("#rdChHint").textContent=c?`${c.holes.length} Löcher · Par ${c.holes.reduce((a,h)=>a+h.par,0)}${c.slope?" · Slope "+c.slope:""} · Spiel zum Handicap = ${c.holes.length==9?18:36} Punkte`:"";
+ /* Rundenliste */
+ const L=ROUNDS.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.id>a.id?1:-1));
+ const head=`<div class="rdrow" style="border:none;padding-bottom:2px;cursor:default"><span class="rdd lbl">Datum</span><span class="rdn lbl">Platz</span><span class="rds lbl">Schl</span><span class="rdp lbl" style="color:var(--mut)">Pkt</span></div>`;
+ $("#rdList").innerHTML=L.length?head+L.map(r=>{const S=rdSummary(r);
+  return `<div class="rdrow" data-r="${r.id}"><span class="rdd num">${(r.date||"").slice(8,10)}.${(r.date||"").slice(5,7)}.${(r.date||"").slice(2,4)}</span>
+   <span class="rdn">${r.courseName||""}${r.tee?" · "+r.tee:""}</span>
+   <span class="rds num">${S.schlaege||"–"}</span><span class="rdp num">${S.punkte}</span></div>`;}).join(""):`<div class="hint">Noch keine Runde erfasst.</div>`;
+ $$("#rdList .rdrow[data-r]").forEach(el=>el.onclick=()=>{rdDetailId=el.dataset.r;rdShow("detail");});
+ /* Platzliste */
+ $("#rdCourseList").innerHTML=COURSES.map(c=>`<div class="rdrow" data-ce="${c.id}"><span class="rdn">${c.name}${c.tee?" · "+c.tee:""}</span><span class="rds num">${c.holes.length} L</span><span class="rds num">Par ${c.holes.reduce((a,h)=>a+h.par,0)}</span></div>`).join("");
+ $$("#rdCourseList .rdrow").forEach(el=>el.onclick=()=>{rdEditId=el.dataset.ce;rdShow("edit");});
+}
+
+/* --- Runde starten --- */
+function rdStartRound(){
+ const c=courseById(rdCourseSel); if(!c){toast("Kein Platz gewählt");return;}
+ const ch=parseInt($("#rdCh").value,10);
+ if(isNaN(ch)){toast("Vorgabe eingeben");return;}
+ rdCur={id:rid(),date:$("#rdDate").value||today(),courseId:c.id,courseName:c.name,tee:c.tee||"",
+        ch:ch,slope:c.slope||null,holes:c.holes.map(h=>({n:h.n,s:0,p:0,pen:0}))};
+ rdHole=0; rdShow("play");
+}
+function rdCurSave(){ if(!rdCur)return; const i=ROUNDS.findIndex(r=>r.id==rdCur.id);
+ if(i>=0)ROUNDS[i]=rdCur; else ROUNDS.push(rdCur); saveR(); }
+
+/* --- Live --- */
+function renderRdPlay(){
+ if(!rdCur){rdShow("home");return;}
+ const c=courseById(rdCur.courseId), S=rdSummary(rdCur);
+ if(rdHole<0)rdHole=0; if(rdHole>=c.holes.length)rdHole=c.holes.length-1;
+ const h=c.holes[rdHole], row=S.rows[rdHole], e=rdCur.holes.find(x=>x.n==h.n);
+ $("#rdPlayCourse").textContent=rdCur.courseName+(rdCur.tee?" · "+rdCur.tee:"")+" · Vorgabe "+rdCur.ch;
+ $("#rdHoleNo").textContent=h.n; $("#rdHoleTot").textContent=c.holes.length;
+ $("#rdHolePar").textContent=h.par; $("#rdHoleIdx").textContent=h.idx;
+ $("#rdHoleVor").textContent=row.vor; $("#rdHoleNet").textContent=row.net;
+ $("#rdHoleM").textContent=h.m?h.m+" m":"–";
+ $("#rdVs").textContent=e.s; $("#rdVp").textContent=e.p; $("#rdVpen").textContent=e.pen;
+ $("#rdRunPts").textContent=S.punkte;
+ $("#rdBar").style.width=Math.round(100*S.done/c.holes.length)+"%";
+ const pt=row.pts;
+ const dn=e.s-row.net;
+ $("#rdHolePts").textContent = e.s ? (pt+" Punkt"+(pt==1?"":"e")+" · Netto-Par "+row.net+" · "+(dn===0?"genau getroffen":(dn<0?(-dn)+" unter":dn+" über"))) : "Schläge eintragen";
+ $("#rdHolePts").style.color = e.s ? (pt>=2?"var(--tracer)":(pt==1?"var(--warn)":"var(--bad)")) : "var(--mut)";
+ $("#rdPrev").disabled=rdHole==0; $("#rdPrev").style.opacity=rdHole==0?.4:1;
+ $("#rdNext").textContent = rdHole==c.holes.length-1 ? "Letztes Loch" : "Weiter";
+}
+function rdStep(f,d){
+ if(!rdCur)return; const c=courseById(rdCur.courseId), h=c.holes[rdHole];
+ const e=rdCur.holes.find(x=>x.n==h.n);
+ e[f]=Math.max(0,Math.min(30,(+e[f]||0)+d));
+ if(f=="s"){ if(e.p>e.s)e.p=e.s; if(e.pen>e.s)e.pen=e.s; }
+ if(f=="p"&&e.p>e.s)e.p=e.s;
+ if(f=="pen"&&e.pen>e.s)e.pen=e.s;
+ rdCurSave(); renderRdPlay();
+}
+
+/* --- Tabelle --- */
+function renderRdTable(){
+ if(!rdCur){rdShow("home");return;}
+ const c=courseById(rdCur.courseId), S=rdSummary(rdCur);
+ $("#rdTblCourse").textContent=rdCur.courseName+(rdCur.tee?" · "+rdCur.tee:"")+" · "+(rdCur.date||"").split("-").reverse().join(".");
+ $("#rdTblSum").textContent=S.schlaege+" Schläge · "+S.punkte+" Punkte · Vorgabe "+rdCur.ch;
+ let html=`<tr><th>Loch</th><th>Par</th><th>Idx</th><th>Vorg</th><th>Schl</th><th>Putts</th><th>Straf</th><th>Pkt</th></tr>`;
+ S.rows.forEach((r,i)=>{ html+=`<tr class="${i==rdHole?"hl":""}"><td class="num">${r.n}</td><td class="num">${r.par}</td><td class="num" style="color:var(--mut)">${r.idx}</td><td class="num tracerTxt">${r.vor}</td>
+  <td><input class="cin num" data-h="${r.n}" data-f="s" inputmode="numeric" value="${r.s||""}"></td>
+  <td><input class="cin num" data-h="${r.n}" data-f="p" inputmode="numeric" value="${r.p||""}"></td>
+  <td><input class="cin num" data-h="${r.n}" data-f="pen" inputmode="numeric" value="${r.pen||""}"></td>
+  <td class="num" style="font-weight:800">${r.pts==null?"–":r.pts}</td></tr>`; });
+ html+=`<tr><td style="font-weight:800">Total</td><td class="num" style="font-weight:800">${S.parAll}</td><td></td><td class="num" style="font-weight:800">${S.ch}</td>
+  <td class="num" style="font-weight:800">${S.schlaege}</td><td class="num" style="font-weight:800">${S.putts}</td><td class="num" style="font-weight:800">${S.strafen}</td>
+  <td class="num tracerTxt" style="font-weight:800">${S.punkte}</td></tr>`;
+ $("#rdTbl").innerHTML=html;
+ $$("#rdTbl input.cin").forEach(inp=>{
+  inp.onchange=inp.oninput=()=>{const e=rdCur.holes.find(x=>x.n==+inp.dataset.h);
+   let v=parseInt(inp.value,10); if(isNaN(v)||v<0)v=0; if(v>30)v=30;
+   e[inp.dataset.f]=v;
+   if(e.p>e.s)e.p=e.s; if(e.pen>e.s)e.pen=e.s;
+   rdCurSave(); const S2=rdSummary(rdCur);
+   $("#rdTblSum").textContent=S2.schlaege+" Schläge · "+S2.punkte+" Punkte · Vorgabe "+rdCur.ch;
+   const row=S2.rows.find(x=>x.n==+inp.dataset.h);
+   const td=inp.closest("tr").lastElementChild; td.textContent=row.pts==null?"–":row.pts;};
+ });
+}
+
+/* --- Auswertung --- */
+function renderRdDetail(){
+ const r=ROUNDS.find(x=>x.id==rdDetailId); if(!r){rdShow("home");return;}
+ const S=rdSummary(r), diff=S.punkte-S.zumHcp;
+ const f1=v=>(Math.round(v*10)/10).toFixed(1);
+ let h=`<div class="card hero" style="padding:16px">
+  <div class="lbl">${r.courseName}${r.tee?" · "+r.tee:""} · ${(r.date||"").split("-").reverse().join(".")}</div>
+  <div class="big num">${S.punkte}<small> Punkte · ${diff>=0?"+":""}${diff} zum Handicap</small></div>
+  <div class="meta num">
+   <div><span class="lbl">Schläge</span><span class="v">${S.schlaege}</span></div>
+   <div><span class="lbl">zu Par</span><span class="v">${S.zuPar>=0?"+":""}${S.zuPar}</span></div>
+   <div><span class="lbl">Putts</span><span class="v">${S.putts}</span></div>
+   <div><span class="lbl">Strafen</span><span class="v" style="color:${S.strafen?"var(--bad)":"inherit"}">${S.strafen}</span></div>
+   <div><span class="lbl">Vorgabe</span><span class="v tracerTxt">${S.ch}</span></div>
+  </div></div>`;
+
+ h+=`<div class="card"><div class="lbl" style="margin-bottom:2px">Loch für Loch</div><div class="scroll"><table class="tbl cmp">
+  <tr><th>Loch</th><th>m</th><th>Par</th><th>Idx</th><th>Vorg</th><th>Schl</th><th>bis Grün</th><th>Putts</th><th>Straf</th><th>Pkt</th></tr>`;
+ S.rows.forEach(x=>{h+=`<tr><td class="num">${x.n}</td><td class="num" style="color:var(--mut)">${x.m||"–"}</td><td class="num">${x.par}</td>
+  <td class="num" style="color:var(--mut)">${x.idx}</td><td class="num tracerTxt">${x.vor}</td><td class="num" style="font-weight:700">${x.s||"–"}</td>
+  <td class="num">${x.s?x.bis:"–"}</td><td class="num">${x.s?x.p:"–"}</td><td class="num" style="color:${x.pen?"var(--bad)":"var(--mut)"}">${x.pen||"–"}</td>
+  <td class="num" style="font-weight:800">${x.pts==null?"–":x.pts}</td></tr>`;});
+ h+=`<tr><td style="font-weight:800">Σ</td><td></td><td class="num" style="font-weight:800">${S.par}</td><td></td><td class="num" style="font-weight:800">${S.ch}</td>
+  <td class="num" style="font-weight:800">${S.schlaege}</td><td class="num" style="font-weight:800">${S.bis}</td><td class="num" style="font-weight:800">${S.putts}</td>
+  <td class="num" style="font-weight:800">${S.strafen}</td><td class="num tracerTxt" style="font-weight:800">${S.punkte}</td></tr></table></div></div>`;
+
+ if(Object.keys(S.byPar).length>1){
+  h+=`<div class="card"><div class="lbl" style="margin-bottom:2px">Nach Par</div><table class="tbl">
+   <tr><th>Par</th><th>Löcher</th><th>Schläge</th><th>zu Par</th><th>Ø bis Grün</th><th>Ø Punkte</th></tr>`;
+  [3,4,5].forEach(p=>{const b=S.byPar[p];if(!b)return;
+   h+=`<tr><td>Par ${p}</td><td class="num">${b.n}</td><td class="num">${b.s}</td><td class="num">${b.s-b.par>=0?"+":""}${b.s-b.par}</td>
+    <td class="num">${f1(b.bis/b.n)}</td><td class="num" style="font-weight:800">${f1(b.pts/b.n)}</td></tr>`;});
+  h+=`</table></div>`;
+ }
+
+ h+=`<div class="card"><div class="lbl">Was die Runde gekostet hat</div><div class="bd">
+  <div><span class="lbl">Strafschläge</span><div class="bv" style="color:${S.strafen?"var(--bad)":"inherit"}">${S.strafen}</div></div>
+  <div><span class="lbl">Putts über 2</span><div class="bv" style="color:${S.extraPutts?"var(--warn)":"inherit"}">${S.extraPutts}</div></div>
+  <div><span class="lbl">ohne beides</span><div class="bv tracerTxt">${S.oPunkte}</div></div></div>
+  <div class="rdnote">Ohne Strafschläge und ohne die Putts über zwei wären es <b>${S.oSchlaege} Schläge</b> und <b>${S.oPunkte} Punkte</b> gewesen — das ist die Obergrenze des Spiels dieser Runde. Beide Posten sind eng umrissen und trainierbar.</div></div>`;
+
+ if(S.sd){
+  h+=`<div class="card"><div class="lbl">Score Differential (WHS)</div><div class="bd">`;
+  if(S.sd.sd9!=null)h+=`<div><span class="lbl">SD 9 gespielt</span><div class="bv">${f1(S.sd.sd9)}</div></div>
+   <div><span class="lbl">SD 9 berechnet</span><div class="bv">${f1((S.sd.hi*1.04+2.4)/2)}</div></div>`;
+  h+=`<div><span class="lbl">SD 18</span><div class="bv tracerTxt">${f1(S.sd.sd18)}</div></div></div>
+   <div class="rdnote">Bei Index ${f1(S.sd.hi)} und Slope ${S.sd.slope}. Das Course Rating fällt aus der Rechnung heraus; jeder Punkt über ${S.zumHcp} ist ${f1(113/S.sd.slope)} Differentialpunkte wert. Gilt nur, wenn die Runde vorher als EDS angemeldet war.</div></div>`;
+ }else{
+  h+=`<div class="card"><div class="lbl">Score Differential</div><div class="rdnote">Für die WHS-Rechnung fehlen ${!rdHi()?"dein Handicap Index":""}${(!rdHi()&&!(r.slope||(courseById(r.courseId)||{}).slope))?" und ":""}${!(r.slope||(courseById(r.courseId)||{}).slope)?"der Slope des Platzes":""}. Index unten eintragen, Slope beim Platz.</div>
+   <div class="twocol" style="margin-top:10px"><div><div class="inlbl">Handicap Index</div><input type="number" step="0.1" class="in" id="rdHiIn" style="padding:11px" value="${rdHi()||""}"></div><div style="display:flex;align-items:flex-end"><button class="go" id="rdHiSave" style="width:100%;padding:13px">Speichern</button></div></div></div>`;
+ }
+
+ h+=`<div style="display:flex;gap:8px"><button class="go" id="rdDetBack" style="flex:2;padding:13px">Zurück</button>
+  <button class="go" id="rdDetEdit" style="flex:1;padding:13px">Bearbeiten</button>
+  <button class="go" id="rdDetDel" style="flex:0 0 auto;padding:13px 15px;color:var(--bad);border-color:#3a2626">Löschen</button></div>`;
+ $("#rdDetail").innerHTML=h;
+ $("#rdDetBack").onclick=()=>rdShow("home");
+ $("#rdDetEdit").onclick=()=>{rdCur=JSON.parse(JSON.stringify(r));rdHole=0;rdShow("table");};
+ $("#rdDetDel").onclick=()=>{if(confirm("Runde löschen?")){ROUNDS=ROUNDS.filter(x=>x.id!=r.id);saveR();rdShow("home");toast("Runde gelöscht");}};
+ if($("#rdHiSave"))$("#rdHiSave").onclick=()=>{const v=parseFloat($("#rdHiIn").value);if(isNaN(v)){toast("Index eingeben");return;}rdSetHi(v);renderRdDetail();toast("Index gespeichert");};
+}
+
+/* --- Platz-Editor --- */
+function renderCourseEdit(){
+ const c=rdEditId?courseById(rdEditId):null;
+ $("#rdEditTitle").textContent=c?"Platz bearbeiten":"Platz anlegen";
+ if(c){$("#ceName").value=c.name;$("#ceTee").value=c.tee||"";$("#ceSlope").value=c.slope||"";
+  rdEditHn=c.holes.length; rdEditHoles=JSON.parse(JSON.stringify(c.holes));}
+ else if(!rdEditHoles.length){$("#ceName").value="";$("#ceTee").value="";$("#ceSlope").value="";
+  rdEditHn=9; rdEditHoles=ceBlank(9);}
+ $$("#rdEdit .seg[data-hn]").forEach(s=>s.classList.toggle("on",+s.dataset.hn==rdEditHn));
+ $("#ceDelete").style.display=(c&&!c.seed)?"":"none";
+ let h=`<tr><th>Loch</th><th>Par</th><th>Index</th><th>Länge m</th></tr>`;
+ rdEditHoles.forEach(x=>{h+=`<tr><td class="num">${x.n}</td>
+  <td><input class="cin num" data-n="${x.n}" data-f="par" inputmode="numeric" value="${x.par}"></td>
+  <td><input class="cin num" data-n="${x.n}" data-f="idx" inputmode="numeric" value="${x.idx}"></td>
+  <td><input class="cin num" data-n="${x.n}" data-f="m" inputmode="numeric" value="${x.m||""}"></td></tr>`;});
+ $("#ceTbl").innerHTML=h;
+ $$("#ceTbl input.cin").forEach(inp=>inp.oninput=()=>{const x=rdEditHoles.find(y=>y.n==+inp.dataset.n);
+  const v=parseInt(inp.value,10); x[inp.dataset.f]=isNaN(v)?(inp.dataset.f=="m"?null:0):v;});
+}
+function ceBlank(n){const a=[];for(let i=1;i<=n;i++)a.push({n:i,par:4,idx:i,m:null});return a;}
+function ceValidate(){
+ const idx=rdEditHoles.map(x=>x.idx);
+ if(idx.some(v=>!v||v<1||v>36))return "Stroke Index fehlt oder ist unplausibel";
+ if(new Set(idx).size!=idx.length)return "Stroke Index doppelt vergeben";
+ if(rdEditHoles.some(x=>x.par<3||x.par>6))return "Par muss zwischen 3 und 6 liegen";
+ if(!$("#ceName").value.trim())return "Name fehlt";
+ return null;
+}
+
+/* --- Events --- */
+$("#rdStart").onclick=rdStartRound;
+$$("#rdPlay .stpb").forEach(b=>b.onclick=()=>rdStep(b.closest(".stp").dataset.f,+b.dataset.d));
+$("#rdPrev").onclick=()=>{if(rdHole>0){rdHole--;renderRdPlay();}};
+$("#rdNext").onclick=()=>{const c=courseById(rdCur.courseId);if(rdHole<c.holes.length-1){rdHole++;renderRdPlay();}else{rdFinishRound();}};
+$("#rdToTable").onclick=()=>rdShow("table");
+$("#rdToPlay").onclick=()=>rdShow("play");
+$("#rdTblBack").onclick=()=>{ if(ROUNDS.some(x=>x.id==rdCur.id)&&rdCur.holes.some(x=>x.s)){rdDetailId=rdCur.id;rdShow("detail");} else rdShow("play"); };
+$("#rdFinish").onclick=()=>rdFinishRound();
+$("#rdTblFinish").onclick=()=>rdFinishRound();
+$("#rdAbort").onclick=()=>{if(confirm("Runde verwerfen?")){ROUNDS=ROUNDS.filter(x=>x.id!=rdCur.id);saveR();rdCur=null;rdShow("home");toast("Verworfen");}};
+function rdFinishRound(){ if(!rdCur)return;
+ if(!rdCur.holes.some(x=>x.s)){toast("Noch keine Schläge erfasst");return;}
+ rdCurSave(); rdDetailId=rdCur.id; rdCur=null; rdShow("detail"); toast("Runde gespeichert"); }
+$("#rdNewCourse").onclick=()=>{rdEditId=null;rdEditHoles=[];rdShow("edit");};
+$$("#rdEdit .seg[data-hn]").forEach(s=>s.onclick=()=>{rdEditHn=+s.dataset.hn;
+ const old=rdEditHoles; rdEditHoles=ceBlank(rdEditHn);
+ rdEditHoles.forEach(x=>{const o=old.find(y=>y.n==x.n); if(o){x.par=o.par;x.idx=o.idx;x.m=o.m;}});
+ renderCourseEdit();});
+$("#ceCancel").onclick=()=>rdShow("home");
+$("#ceSave").onclick=()=>{const err=ceValidate(); if(err){toast(err);return;}
+ const slope=parseInt($("#ceSlope").value,10);
+ const obj={id:rdEditId||("c"+rid()),name:$("#ceName").value.trim(),tee:$("#ceTee").value.trim(),
+  slope:isNaN(slope)?null:slope,holes:JSON.parse(JSON.stringify(rdEditHoles))};
+ const i=COURSES.findIndex(c=>c.id==rdEditId);
+ if(i>=0){obj.seed=COURSES[i].seed;COURSES[i]=obj;} else COURSES.push(obj);
+ saveC(); rdCourseSel=obj.id; rdShow("home"); toast("Platz gespeichert");};
+$("#ceDelete").onclick=()=>{if(!rdEditId)return;
+ if(ROUNDS.some(r=>r.courseId==rdEditId)){toast("Zu diesem Platz gibt es Runden");return;}
+ if(confirm("Platz löschen?")){COURSES=COURSES.filter(c=>c.id!=rdEditId);saveC();rdShow("home");toast("Platz gelöscht");}};
+$("#rdExport").onclick=()=>{const b=new Blob([JSON.stringify({schema:"golf_runden_v1",courses:COURSES,rounds:ROUNDS},null,2)],{type:"application/json"});
+ const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="golf_runden_"+today()+".json";a.click();URL.revokeObjectURL(u);toast("Runden exportiert");};
+$("#rdImport").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
+ rd.onload=()=>{try{const o=JSON.parse(String(rd.result));
+  if(!o||!Array.isArray(o.rounds))throw 0;
+  if(Array.isArray(o.courses))COURSES=o.courses;
+  ROUNDS=o.rounds; saveC(); saveR(); rdShow("home"); toast("Import: "+ROUNDS.length+" Runden");}
+  catch(x){toast("Import fehlgeschlagen");}};
+ rd.readAsText(f); e.target.value="";};
+
 let rt;window.addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(()=>show(activeView),150);});
 
 buildChips();syncOpts();renderHero();renderRecent();renderPlan();renderPlanStrip();
