@@ -178,6 +178,21 @@ canvas{width:100%;height:230px;display:block}
 .tbl.cmp th{font-size:9.5px;letter-spacing:.2px}
 .tbl.cmp input.cin{width:40px;padding:6px 2px;font-size:14px}
 .rdbtns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+/* Zwei-Ball-Erfassung */
+.stp2{display:grid;grid-template-columns:1fr auto auto;gap:9px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.stp2:last-child{border-bottom:none}
+.stp2 .stpl{font-size:14px}
+.stpg{display:flex;align-items:center;gap:4px}
+.stpg .stpb{width:36px;height:42px;font-size:21px;border-radius:10px}
+.stpg .stpv{width:26px;font-size:22px}
+.bhd{display:grid;grid-template-columns:1fr auto auto;gap:9px;padding-bottom:5px}
+.bhd b{width:106px;text-align:center;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--mut)}
+.rd2pts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.rd2pts>div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 4px}
+.rd2pts .lbl{display:block;font-size:10px;margin-bottom:2px}
+.rd2pts b{font-size:20px;font-weight:800}
+.tbl th.b2s,.tbl td.b2s{border-left:2px solid #2b3a31}
+.tbl th.bgrp{font-size:9.5px;letter-spacing:.5px;color:var(--mut);padding-bottom:2px}
 .rdbtns button{padding:12px 4px;font-size:14px}
 .rdnote{font-size:13px;color:var(--mut);line-height:1.55;margin-top:10px}
 </style>
@@ -388,6 +403,8 @@ canvas{width:100%;height:230px;display:block}
      <div><div class="inlbl">Datum</div><input type="date" class="in" id="rdDate" style="font-size:16px;padding:11px"></div>
      <div><div class="inlbl">Vorgabe (CH)</div><input type="number" class="in" id="rdCh" inputmode="numeric" style="padding:11px"></div>
     </div>
+    <div style="margin-top:10px"><div class="inlbl">B&auml;lle</div>
+     <div class="statusrow" id="rdNewBallSeg" style="margin-top:0"><div class="seg on" data-nb="1">1 Ball</div><div class="seg" data-nb="2">2 B&auml;lle</div></div></div>
     <div class="hint" id="rdChHint"></div>
     <button class="addbtn" id="rdStart">Runde starten</button>
    </div>
@@ -435,10 +452,15 @@ canvas{width:100%;height:230px;display:block}
     <div class="pbarw"><div class="pbar" id="rdBar" style="width:0%"></div></div>
    </div>
 
+   <div class="statusrow" id="rdBallMode" style="margin:0 0 13px"><div class="seg on" data-nb="1">1 Ball</div><div class="seg" data-nb="2">2 Bälle</div></div>
+
    <div class="card">
-    <div class="stp" data-f="s"><div class="stpl">Schläge</div><button class="stpb" data-d="-1">−</button><div class="stpv num" id="rdVs">0</div><button class="stpb" data-d="1">+</button></div>
-    <div class="stp" data-f="p"><div class="stpl">Putts</div><button class="stpb" data-d="-1">−</button><div class="stpv num" id="rdVp">0</div><button class="stpb" data-d="1">+</button></div>
-    <div class="stp" data-f="pen" style="border-bottom:none"><div class="stpl">Strafschläge</div><button class="stpb" data-d="-1">−</button><div class="stpv num" id="rdVpen">0</div><button class="stpb" data-d="1">+</button></div>
+    <div id="rdStp1">
+     <div class="stp" data-f="s"><div class="stpl">Schläge</div><button class="stpb" data-d="-1">−</button><div class="stpv num" id="rdVs">0</div><button class="stpb" data-d="1">+</button></div>
+     <div class="stp" data-f="p"><div class="stpl">Putts</div><button class="stpb" data-d="-1">−</button><div class="stpv num" id="rdVp">0</div><button class="stpb" data-d="1">+</button></div>
+     <div class="stp" data-f="pen" style="border-bottom:none"><div class="stpl">Strafschläge</div><button class="stpb" data-d="-1">−</button><div class="stpv num" id="rdVpen">0</div><button class="stpb" data-d="1">+</button></div>
+    </div>
+    <div id="rdStp2" style="display:none"></div>
     <div class="rdpts" id="rdHolePts">–</div>
    </div>
 
@@ -1237,14 +1259,30 @@ function allocate(ch,holes){
 }
 function holePts(par,vor,s){ if(!s)return null; return Math.max(0, 2+par+vor-s); }
 
+/* --- Zwei Baelle: Ball 2 liegt als s2/p2/pen2 im selben Loch-Eintrag --- */
+function nBalls(r){ return (r && +r.balls==2) ? 2 : 1; }
+function bE(e,b){
+ if(!e)return {s:0,p:0,pen:0};
+ const a={s:+e.s||0,p:+e.p||0,pen:+e.pen||0};
+ if(b==2)return {s:+e.s2||0,p:+e.p2||0,pen:+e.pen2||0};
+ if(b=="best"){
+  const c={s:+e.s2||0,p:+e.p2||0,pen:+e.pen2||0};
+  if(!c.s)return a; if(!a.s)return c;
+  if(c.s<a.s)return c; if(c.s>a.s)return a;
+  return c.p<a.p?c:a;
+ }
+ return a;
+}
+
 /* --- Auswertung einer Runde --- */
-function rdSummary(r){
+function rdSummary(r,b){
+ b=b||1;
  const c=courseById(r.courseId);
  const holes=(c&&c.holes)||r.holes.map(h=>({n:h.n,par:4,idx:h.n,m:null}));
  const A=allocate(r.ch,holes);
  const rows=holes.map(h=>{
-  const e=r.holes.find(x=>x.n==h.n)||{s:0,p:0,pen:0};
-  const s=+e.s||0, p=+e.p||0, pen=+e.pen||0;
+  const e=bE(r.holes.find(x=>x.n==h.n),b);
+  const s=e.s, p=e.p, pen=e.pen;
   const vor=A[h.n]||0;
   return {n:h.n,par:h.par,idx:h.idx,m:h.m,vor:vor,net:h.par+vor,s:s,p:p,pen:pen,
           bis:Math.max(0,s-p-pen), pts:holePts(h.par,vor,s)};
@@ -1275,13 +1313,14 @@ function rdSummary(r){
   else if(S.n==18){ S.sd={sd18:hi-(S.punkte-36)*113/slope, slope:slope, hi:hi}; }
  }
  S.zumHcp=S.n==9?18:36;
+ S.ball=b;
  return S;
 }
 function rdHi(){try{return +localStorage.getItem(KEY+"_hi")||0;}catch(e){return 0;}}
 function rdSetHi(v){try{localStorage.setItem(KEY+"_hi",String(v));}catch(e){}}
 
 /* --- Zustand --- */
-let rdMode="home", rdCur=null, rdHole=0, rdDetailId=null, rdEditId=null, rdCourseSel=null, rdEditHn=9, rdEditHoles=[];
+let rdMode="home", rdCur=null, rdHole=0, rdDetailId=null, rdEditId=null, rdCourseSel=null, rdEditHn=9, rdEditHoles=[], rdNewBalls=1;
 
 function rdShow(m){rdMode=m;
  ["rdHome","rdPlay","rdTable","rdDetail","rdEdit"].forEach(id=>{const e=$("#"+id);if(e)e.style.display=(id=="rd"+m[0].toUpperCase()+m.slice(1))?"":"none";});
@@ -1302,13 +1341,14 @@ function renderRdHome(){
  if(!$("#rdDate").value)$("#rdDate").value=today();
  $("#rdCh").value=defCh(c);
  $("#rdChHint").textContent=c?`${c.holes.length} Löcher · Par ${c.holes.reduce((a,h)=>a+h.par,0)}${c.slope?" · Slope "+c.slope:""} · Spiel zum Handicap = ${c.holes.length==9?18:36} Punkte`:"";
+ $$("#rdNewBallSeg .seg").forEach(e=>e.classList.toggle("on",+e.dataset.nb==rdNewBalls));
  /* Rundenliste */
  const L=ROUNDS.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.id>a.id?1:-1));
  const head=`<div class="rdrow" style="border:none;padding-bottom:2px;cursor:default"><span class="rdd lbl">Datum</span><span class="rdn lbl">Platz</span><span class="rds lbl">Schl</span><span class="rdp lbl" style="color:var(--mut)">Pkt</span></div>`;
- $("#rdList").innerHTML=L.length?head+L.map(r=>{const S=rdSummary(r);
+ $("#rdList").innerHTML=L.length?head+L.map(r=>{const nb=nBalls(r),S=rdSummary(r,1),S2=nb==2?rdSummary(r,2):null;
   return `<div class="rdrow" data-r="${r.id}"><span class="rdd num">${(r.date||"").slice(8,10)}.${(r.date||"").slice(5,7)}.${(r.date||"").slice(2,4)}</span>
-   <span class="rdn">${r.courseName||""}${r.tee?" · "+r.tee:""}</span>
-   <span class="rds num">${S.schlaege||"–"}</span><span class="rdp num">${S.punkte}</span></div>`;}).join(""):`<div class="hint">Noch keine Runde erfasst.</div>`;
+   <span class="rdn">${r.courseName||""}${r.tee?" · "+r.tee:""}${nb==2?` <span style="opacity:.55;font-weight:600">· 2 Bälle</span>`:""}</span>
+   <span class="rds num">${nb==2?(S.schlaege||"–")+"/"+(S2.schlaege||"–"):(S.schlaege||"–")}</span><span class="rdp num"${nb==2?` style="font-size:15px"`:""}>${nb==2?S.punkte+"/"+S2.punkte:S.punkte}</span></div>`;}).join(""):`<div class="hint">Noch keine Runde erfasst.</div>`;
  $$("#rdList .rdrow[data-r]").forEach(el=>el.onclick=()=>{rdDetailId=el.dataset.r;rdShow("detail");});
  /* Platzliste */
  $("#rdCourseList").innerHTML=COURSES.map(c=>`<div class="rdrow" data-ce="${c.id}"><span class="rdn">${c.name}${c.tee?" · "+c.tee:""}</span><span class="rds num">${c.holes.length} L</span><span class="rds num">Par ${c.holes.reduce((a,h)=>a+h.par,0)}</span></div>`).join("");
@@ -1321,16 +1361,19 @@ function rdStartRound(){
  const ch=parseInt($("#rdCh").value,10);
  if(isNaN(ch)){toast("Vorgabe eingeben");return;}
  rdCur={id:rid(),date:$("#rdDate").value||today(),courseId:c.id,courseName:c.name,tee:c.tee||"",
-        ch:ch,slope:c.slope||null,holes:c.holes.map(h=>({n:h.n,s:0,p:0,pen:0}))};
+        ch:ch,slope:c.slope||null,balls:rdNewBalls==2?2:1,
+        holes:c.holes.map(h=>({n:h.n,s:0,p:0,pen:0,s2:0,p2:0,pen2:0}))};
  rdHole=0; rdShow("play");
 }
 function rdCurSave(){ if(!rdCur)return; const i=ROUNDS.findIndex(r=>r.id==rdCur.id);
  if(i>=0)ROUNDS[i]=rdCur; else ROUNDS.push(rdCur); saveR(); }
 
 /* --- Live --- */
+function ptCol(r){ return r.s ? (r.pts>=2?"var(--tracer)":(r.pts==1?"var(--warn)":"var(--bad)")) : "var(--mut)"; }
 function renderRdPlay(){
  if(!rdCur){rdShow("home");return;}
- const c=courseById(rdCur.courseId), S=rdSummary(rdCur);
+ const c=courseById(rdCur.courseId), nb=nBalls(rdCur);
+ const S=rdSummary(rdCur,1), S2=nb==2?rdSummary(rdCur,2):null, SB=nb==2?rdSummary(rdCur,"best"):null;
  if(rdHole<0)rdHole=0; if(rdHole>=c.holes.length)rdHole=c.holes.length-1;
  const h=c.holes[rdHole], row=S.rows[rdHole], e=rdCur.holes.find(x=>x.n==h.n);
  $("#rdPlayCourse").textContent=rdCur.courseName+(rdCur.tee?" · "+rdCur.tee:"")+" · Vorgabe "+rdCur.ch;
@@ -1338,101 +1381,204 @@ function renderRdPlay(){
  $("#rdHolePar").textContent=h.par; $("#rdHoleIdx").textContent=h.idx;
  $("#rdHoleVor").textContent=row.vor; $("#rdHoleNet").textContent=row.net;
  $("#rdHoleM").textContent=h.m?h.m+" m":"–";
- $("#rdVs").textContent=e.s; $("#rdVp").textContent=e.p; $("#rdVpen").textContent=e.pen;
- $("#rdRunPts").textContent=S.punkte;
- $("#rdBar").style.width=Math.round(100*S.done/c.holes.length)+"%";
- const pt=row.pts;
- const dn=e.s-row.net;
- $("#rdHolePts").textContent = e.s ? (pt+" Punkt"+(pt==1?"":"e")+" · Netto-Par "+row.net+" · "+(dn===0?"genau getroffen":(dn<0?(-dn)+" unter":dn+" über"))) : "Schläge eintragen";
- $("#rdHolePts").style.color = e.s ? (pt>=2?"var(--tracer)":(pt==1?"var(--warn)":"var(--bad)")) : "var(--mut)";
+ $$("#rdBallMode .seg").forEach(x=>x.classList.toggle("on",+x.dataset.nb==nb));
+ $("#rdStp1").style.display=nb==2?"none":"";
+ $("#rdStp2").style.display=nb==2?"":"none";
+ $("#rdBar").style.width=Math.round(100*(nb==2?SB.done:S.done)/c.holes.length)+"%";
+ const pv=x=>x.s?x.pts:"–";
+ if(nb==2){
+  $("#rdRunPts").innerHTML=`${S.punkte}<small style="opacity:.5"> / </small>${S2.punkte}`;
+  $("#rdRunPts").style.fontSize="27px";
+  $("#rdStp2").innerHTML=`<div class="bhd"><span></span><b>Ball 1</b><b>Ball 2</b></div>`+
+   [["s","Schläge"],["p","Putts"],["pen","Strafen"]].map(fl=>
+    `<div class="stp2" data-f="${fl[0]}"><div class="stpl">${fl[1]}</div>`+
+    [1,2].map(b=>`<div class="stpg"><button class="stpb" data-b="${b}" data-d="-1">−</button><div class="stpv num">${+e[b==2?fl[0]+"2":fl[0]]||0}</div><button class="stpb" data-b="${b}" data-d="1">+</button></div>`).join("")+
+    `</div>`).join("");
+  $$("#rdStp2 .stpb").forEach(btn=>btn.onclick=()=>rdStep(btn.closest(".stp2").dataset.f,+btn.dataset.d,+btn.dataset.b));
+  const r2=S2.rows[rdHole], rb=SB.rows[rdHole];
+  $("#rdHolePts").innerHTML=`<div class="rd2pts">
+   <div><span class="lbl">Ball 1</span><b style="color:${ptCol(row)}">${pv(row)}</b></div>
+   <div><span class="lbl">Ball 2</span><b style="color:${ptCol(r2)}">${pv(r2)}</b></div>
+   <div><span class="lbl">Bester</span><b class="tracerTxt">${pv(rb)}</b></div></div>
+   <div style="margin-top:9px;font-size:13px;color:var(--mut);font-weight:600">Netto-Par ${row.net} · bester Ball total ${SB.punkte} Pkt</div>`;
+  $("#rdHolePts").style.color="";
+ }else{
+  $("#rdRunPts").textContent=S.punkte;
+  $("#rdRunPts").style.fontSize="34px";
+  $("#rdVs").textContent=+e.s||0; $("#rdVp").textContent=+e.p||0; $("#rdVpen").textContent=+e.pen||0;
+  const pt=row.pts, dn=row.s-row.net;
+  $("#rdHolePts").textContent = row.s ? (pt+" Punkt"+(pt==1?"":"e")+" · Netto-Par "+row.net+" · "+(dn===0?"genau getroffen":(dn<0?(-dn)+" unter":dn+" über"))) : "Schläge eintragen";
+  $("#rdHolePts").style.color = ptCol(row);
+ }
  $("#rdPrev").disabled=rdHole==0; $("#rdPrev").style.opacity=rdHole==0?.4:1;
  $("#rdNext").textContent = rdHole==c.holes.length-1 ? "Letztes Loch" : "Weiter";
 }
-function rdStep(f,d){
- if(!rdCur)return; const c=courseById(rdCur.courseId), h=c.holes[rdHole];
+function rdStep(f,d,b){
+ if(!rdCur)return; b=(+b==2)?2:1;
+ const c=courseById(rdCur.courseId), h=c.holes[rdHole];
  const e=rdCur.holes.find(x=>x.n==h.n);
- e[f]=Math.max(0,Math.min(30,(+e[f]||0)+d));
- if(f=="s"){ if(e.p>e.s)e.p=e.s; if(e.pen>e.s)e.pen=e.s; }
- if(f=="p"&&e.p>e.s)e.p=e.s;
- if(f=="pen"&&e.pen>e.s)e.pen=e.s;
+ const K=k=>b==2?k+"2":k;
+ e[K(f)]=Math.max(0,Math.min(30,(+e[K(f)]||0)+d));
+ const gs=+e[K("s")]||0;
+ if((+e[K("p")]||0)>gs)e[K("p")]=gs;
+ if((+e[K("pen")]||0)>gs)e[K("pen")]=gs;
  rdCurSave(); renderRdPlay();
 }
 
 /* --- Tabelle --- */
+function rdTblSumTxt(){
+ const nb=nBalls(rdCur), S=rdSummary(rdCur,1);
+ if(nb!=2)return S.schlaege+" Schläge · "+S.punkte+" Punkte · Vorgabe "+rdCur.ch;
+ const S2=rdSummary(rdCur,2), SB=rdSummary(rdCur,"best");
+ return "B1 "+S.schlaege+" Schl / "+S.punkte+" Pkt · B2 "+S2.schlaege+" / "+S2.punkte+" · bester "+SB.punkte;
+}
 function renderRdTable(){
  if(!rdCur){rdShow("home");return;}
- const c=courseById(rdCur.courseId), S=rdSummary(rdCur);
- $("#rdTblCourse").textContent=rdCur.courseName+(rdCur.tee?" · "+rdCur.tee:"")+" · "+(rdCur.date||"").split("-").reverse().join(".");
- $("#rdTblSum").textContent=S.schlaege+" Schläge · "+S.punkte+" Punkte · Vorgabe "+rdCur.ch;
- let html=`<tr><th>Loch</th><th>Par</th><th>Idx</th><th>Vorg</th><th>Schl</th><th>Putts</th><th>Straf</th><th>Pkt</th></tr>`;
- S.rows.forEach((r,i)=>{ html+=`<tr class="${i==rdHole?"hl":""}"><td class="num">${r.n}</td><td class="num">${r.par}</td><td class="num" style="color:var(--mut)">${r.idx}</td><td class="num tracerTxt">${r.vor}</td>
-  <td><input class="cin num" data-h="${r.n}" data-f="s" inputmode="numeric" value="${r.s||""}"></td>
-  <td><input class="cin num" data-h="${r.n}" data-f="p" inputmode="numeric" value="${r.p||""}"></td>
-  <td><input class="cin num" data-h="${r.n}" data-f="pen" inputmode="numeric" value="${r.pen||""}"></td>
-  <td class="num" style="font-weight:800">${r.pts==null?"–":r.pts}</td></tr>`; });
- html+=`<tr><td style="font-weight:800">Total</td><td class="num" style="font-weight:800">${S.parAll}</td><td></td><td class="num" style="font-weight:800">${S.ch}</td>
-  <td class="num" style="font-weight:800">${S.schlaege}</td><td class="num" style="font-weight:800">${S.putts}</td><td class="num" style="font-weight:800">${S.strafen}</td>
-  <td class="num tracerTxt" style="font-weight:800">${S.punkte}</td></tr>`;
+ const c=courseById(rdCur.courseId), nb=nBalls(rdCur);
+ const S=rdSummary(rdCur,1), S2=nb==2?rdSummary(rdCur,2):null;
+ $("#rdTblCourse").textContent=rdCur.courseName+(rdCur.tee?" · "+rdCur.tee:"")+" · "+(rdCur.date||"").split("-").reverse().join(".")+(nb==2?" · 2 Bälle":"");
+ $("#rdTblSum").textContent=rdTblSumTxt();
+ const cin=(n,f,v)=>`<td><input class="cin num" data-h="${n}" data-f="${f}" inputmode="numeric" value="${v||""}"></td>`;
+ let html;
+ if(nb==2){
+  html=`<tr><th colspan="3"></th><th class="bgrp" colspan="4">Ball 1</th><th class="bgrp b2s" colspan="4">Ball 2</th></tr>
+  <tr><th>Loch</th><th>Par</th><th>Vorg</th><th>Schl</th><th>Putt</th><th>Straf</th><th>Pkt</th><th class="b2s">Schl</th><th>Putt</th><th>Straf</th><th>Pkt</th></tr>`;
+  S.rows.forEach((r,i)=>{ const b=S2.rows[i];
+   html+=`<tr class="${i==rdHole?"hl":""}"><td class="num">${r.n}</td><td class="num">${r.par}</td><td class="num tracerTxt">${r.vor}</td>`
+    +cin(r.n,"s",r.s)+cin(r.n,"p",r.p)+cin(r.n,"pen",r.pen)
+    +`<td class="num pcell" data-b="1" style="font-weight:800">${r.pts==null?"–":r.pts}</td>`
+    +cin(r.n,"s2",b.s).replace("<td","<td class=\"b2s\"")+cin(r.n,"p2",b.p)+cin(r.n,"pen2",b.pen)
+    +`<td class="num pcell" data-b="2" style="font-weight:800">${b.pts==null?"–":b.pts}</td></tr>`; });
+  html+=`<tr><td style="font-weight:800">Σ</td><td class="num" style="font-weight:800">${S.parAll}</td><td class="num" style="font-weight:800">${S.ch}</td>
+   <td class="num" style="font-weight:800">${S.schlaege}</td><td class="num" style="font-weight:800">${S.putts}</td><td class="num" style="font-weight:800">${S.strafen}</td>
+   <td class="num tracerTxt" style="font-weight:800">${S.punkte}</td>
+   <td class="num b2s" style="font-weight:800">${S2.schlaege}</td><td class="num" style="font-weight:800">${S2.putts}</td><td class="num" style="font-weight:800">${S2.strafen}</td>
+   <td class="num tracerTxt" style="font-weight:800">${S2.punkte}</td></tr>`;
+ }else{
+  html=`<tr><th>Loch</th><th>Par</th><th>Idx</th><th>Vorg</th><th>Schl</th><th>Putts</th><th>Straf</th><th>Pkt</th></tr>`;
+  S.rows.forEach((r,i)=>{ html+=`<tr class="${i==rdHole?"hl":""}"><td class="num">${r.n}</td><td class="num">${r.par}</td><td class="num" style="color:var(--mut)">${r.idx}</td><td class="num tracerTxt">${r.vor}</td>`
+   +cin(r.n,"s",r.s)+cin(r.n,"p",r.p)+cin(r.n,"pen",r.pen)
+   +`<td class="num pcell" data-b="1" style="font-weight:800">${r.pts==null?"–":r.pts}</td></tr>`; });
+  html+=`<tr><td style="font-weight:800">Total</td><td class="num" style="font-weight:800">${S.parAll}</td><td></td><td class="num" style="font-weight:800">${S.ch}</td>
+   <td class="num" style="font-weight:800">${S.schlaege}</td><td class="num" style="font-weight:800">${S.putts}</td><td class="num" style="font-weight:800">${S.strafen}</td>
+   <td class="num tracerTxt" style="font-weight:800">${S.punkte}</td></tr>`;
+ }
  $("#rdTbl").innerHTML=html;
  $$("#rdTbl input.cin").forEach(inp=>{
   inp.onchange=inp.oninput=()=>{const e=rdCur.holes.find(x=>x.n==+inp.dataset.h);
    let v=parseInt(inp.value,10); if(isNaN(v)||v<0)v=0; if(v>30)v=30;
-   e[inp.dataset.f]=v;
-   if(e.p>e.s)e.p=e.s; if(e.pen>e.s)e.pen=e.s;
-   rdCurSave(); const S2=rdSummary(rdCur);
-   $("#rdTblSum").textContent=S2.schlaege+" Schläge · "+S2.punkte+" Punkte · Vorgabe "+rdCur.ch;
-   const row=S2.rows.find(x=>x.n==+inp.dataset.h);
-   const td=inp.closest("tr").lastElementChild; td.textContent=row.pts==null?"–":row.pts;};
+   const f=inp.dataset.f, two=f.slice(-1)=="2", K=k=>two?k+"2":k;
+   e[f]=v;
+   const gs=+e[K("s")]||0;
+   if((+e[K("p")]||0)>gs)e[K("p")]=gs;
+   if((+e[K("pen")]||0)>gs)e[K("pen")]=gs;
+   rdCurSave();
+   $("#rdTblSum").textContent=rdTblSumTxt();
+   const tr=inp.closest("tr"), hn=+inp.dataset.h;
+   const A=rdSummary(rdCur,1).rows.find(x=>x.n==hn);
+   const c1=tr.querySelector('.pcell[data-b="1"]'); if(c1)c1.textContent=A.pts==null?"–":A.pts;
+   if(nBalls(rdCur)==2){ const B=rdSummary(rdCur,2).rows.find(x=>x.n==hn);
+    const c2=tr.querySelector('.pcell[data-b="2"]'); if(c2)c2.textContent=B.pts==null?"–":B.pts; }
+  };
  });
 }
 
 /* --- Auswertung --- */
 function renderRdDetail(){
  const r=ROUNDS.find(x=>x.id==rdDetailId); if(!r){rdShow("home");return;}
- const S=rdSummary(r), diff=S.punkte-S.zumHcp;
+ const nb=nBalls(r);
+ const S=rdSummary(r,1), S2=nb==2?rdSummary(r,2):null, SB=nb==2?rdSummary(r,"best"):null;
+ const diff=S.punkte-S.zumHcp;
  const f1=v=>(Math.round(v*10)/10).toFixed(1);
- let h=`<div class="card hero" style="padding:16px">
-  <div class="lbl">${r.courseName}${r.tee?" · "+r.tee:""} · ${(r.date||"").split("-").reverse().join(".")}</div>
-  <div class="big num">${S.punkte}<small> Punkte · ${diff>=0?"+":""}${diff} zum Handicap</small></div>
-  <div class="meta num">
-   <div><span class="lbl">Schläge</span><span class="v">${S.schlaege}</span></div>
-   <div><span class="lbl">zu Par</span><span class="v">${S.zuPar>=0?"+":""}${S.zuPar}</span></div>
-   <div><span class="lbl">Putts</span><span class="v">${S.putts}</span></div>
-   <div><span class="lbl">Strafen</span><span class="v" style="color:${S.strafen?"var(--bad)":"inherit"}">${S.strafen}</span></div>
-   <div><span class="lbl">Vorgabe</span><span class="v tracerTxt">${S.ch}</span></div>
-  </div></div>`;
+ const hd=`${r.courseName}${r.tee?" · "+r.tee:""} · ${(r.date||"").split("-").reverse().join(".")}`;
+ let h;
+ if(nb==2){
+  h=`<div class="card hero" style="padding:16px">
+   <div class="lbl">${hd} · 2 Bälle</div>
+   <div class="big num" style="font-size:34px">${S.punkte}<small style="opacity:.5"> / </small>${S2.punkte}<small> Punkte</small></div>
+   <div class="meta num">
+    <div><span class="lbl">Bester Ball</span><span class="v tracerTxt">${SB.punkte}</span></div>
+    <div><span class="lbl">B1 zum Hcp</span><span class="v">${diff>=0?"+":""}${diff}</span></div>
+    <div><span class="lbl">Schläge</span><span class="v">${S.schlaege} / ${S2.schlaege}</span></div>
+    <div><span class="lbl">zu Par</span><span class="v">${S.zuPar>=0?"+":""}${S.zuPar} / ${S2.zuPar>=0?"+":""}${S2.zuPar}</span></div>
+    <div><span class="lbl">Putts</span><span class="v">${S.putts} / ${S2.putts}</span></div>
+    <div><span class="lbl">Strafen</span><span class="v" style="color:${(S.strafen||S2.strafen)?"var(--bad)":"inherit"}">${S.strafen} / ${S2.strafen}</span></div>
+    <div><span class="lbl">Vorgabe</span><span class="v tracerTxt">${S.ch}</span></div>
+   </div></div>`;
+ }else{
+  h=`<div class="card hero" style="padding:16px">
+   <div class="lbl">${hd}</div>
+   <div class="big num">${S.punkte}<small> Punkte · ${diff>=0?"+":""}${diff} zum Handicap</small></div>
+   <div class="meta num">
+    <div><span class="lbl">Schläge</span><span class="v">${S.schlaege}</span></div>
+    <div><span class="lbl">zu Par</span><span class="v">${S.zuPar>=0?"+":""}${S.zuPar}</span></div>
+    <div><span class="lbl">Putts</span><span class="v">${S.putts}</span></div>
+    <div><span class="lbl">Strafen</span><span class="v" style="color:${S.strafen?"var(--bad)":"inherit"}">${S.strafen}</span></div>
+    <div><span class="lbl">Vorgabe</span><span class="v tracerTxt">${S.ch}</span></div>
+   </div></div>`;
+ }
 
- h+=`<div class="card"><div class="lbl" style="margin-bottom:2px">Loch für Loch</div><div class="scroll"><table class="tbl cmp">
-  <tr><th>Loch</th><th>m</th><th>Par</th><th>Idx</th><th>Vorg</th><th>Schl</th><th>bis Grün</th><th>Putts</th><th>Straf</th><th>Pkt</th></tr>`;
- S.rows.forEach(x=>{h+=`<tr><td class="num">${x.n}</td><td class="num" style="color:var(--mut)">${x.m||"–"}</td><td class="num">${x.par}</td>
-  <td class="num" style="color:var(--mut)">${x.idx}</td><td class="num tracerTxt">${x.vor}</td><td class="num" style="font-weight:700">${x.s||"–"}</td>
-  <td class="num">${x.s?x.bis:"–"}</td><td class="num">${x.s?x.p:"–"}</td><td class="num" style="color:${x.pen?"var(--bad)":"var(--mut)"}">${x.pen||"–"}</td>
-  <td class="num" style="font-weight:800">${x.pts==null?"–":x.pts}</td></tr>`;});
- h+=`<tr><td style="font-weight:800">Σ</td><td></td><td class="num" style="font-weight:800">${S.par}</td><td></td><td class="num" style="font-weight:800">${S.ch}</td>
-  <td class="num" style="font-weight:800">${S.schlaege}</td><td class="num" style="font-weight:800">${S.bis}</td><td class="num" style="font-weight:800">${S.putts}</td>
-  <td class="num" style="font-weight:800">${S.strafen}</td><td class="num tracerTxt" style="font-weight:800">${S.punkte}</td></tr></table></div></div>`;
+ if(nb==2){
+  h+=`<div class="card"><div class="lbl" style="margin-bottom:2px">Loch für Loch · beide Bälle</div><div class="scroll"><table class="tbl cmp">
+   <tr><th colspan="4"></th><th class="bgrp" colspan="4">Ball 1</th><th class="bgrp b2s" colspan="4">Ball 2</th><th class="bgrp b2s"></th></tr>
+   <tr><th>Loch</th><th>m</th><th>Par</th><th>Vorg</th><th>Schl</th><th>Putt</th><th>Straf</th><th>Pkt</th><th class="b2s">Schl</th><th>Putt</th><th>Straf</th><th>Pkt</th><th class="b2s">best</th></tr>`;
+  S.rows.forEach((x,i)=>{const y=S2.rows[i], z=SB.rows[i];
+   h+=`<tr><td class="num">${x.n}</td><td class="num" style="color:var(--mut)">${x.m||"–"}</td><td class="num">${x.par}</td><td class="num tracerTxt">${x.vor}</td>
+    <td class="num" style="font-weight:700">${x.s||"–"}</td><td class="num">${x.s?x.p:"–"}</td><td class="num" style="color:${x.pen?"var(--bad)":"var(--mut)"}">${x.pen||"–"}</td>
+    <td class="num" style="font-weight:800">${x.pts==null?"–":x.pts}</td>
+    <td class="num b2s" style="font-weight:700">${y.s||"–"}</td><td class="num">${y.s?y.p:"–"}</td><td class="num" style="color:${y.pen?"var(--bad)":"var(--mut)"}">${y.pen||"–"}</td>
+    <td class="num" style="font-weight:800">${y.pts==null?"–":y.pts}</td>
+    <td class="num tracerTxt b2s" style="font-weight:800">${z.pts==null?"–":z.pts}</td></tr>`;});
+  h+=`<tr><td style="font-weight:800">Σ</td><td></td><td class="num" style="font-weight:800">${S.par}</td><td class="num" style="font-weight:800">${S.ch}</td>
+   <td class="num" style="font-weight:800">${S.schlaege}</td><td class="num" style="font-weight:800">${S.putts}</td><td class="num" style="font-weight:800">${S.strafen}</td>
+   <td class="num" style="font-weight:800">${S.punkte}</td>
+   <td class="num b2s" style="font-weight:800">${S2.schlaege}</td><td class="num" style="font-weight:800">${S2.putts}</td><td class="num" style="font-weight:800">${S2.strafen}</td>
+   <td class="num" style="font-weight:800">${S2.punkte}</td>
+   <td class="num tracerTxt b2s" style="font-weight:800">${SB.punkte}</td></tr></table></div></div>`;
+  const best=Math.max(S.punkte,S2.punkte), gap=SB.punkte-best;
+  h+=`<div class="card"><div class="lbl">Ballvergleich</div><div class="bd">
+   <div><span class="lbl">Ball 1</span><div class="bv">${S.punkte}</div></div>
+   <div><span class="lbl">Ball 2</span><div class="bv">${S2.punkte}</div></div>
+   <div><span class="lbl">Bester Ball</span><div class="bv tracerTxt">${SB.punkte}</div></div></div>
+   <div class="rdnote">Nimmt man Loch für Loch den besseren der zwei Bälle, kommen <b>${SB.punkte} Punkte</b> bei <b>${SB.schlaege} Schlägen</b> heraus — ${gap>0?"<b>"+gap+" Punkt"+(gap==1?"":"e")+" mehr</b> als dein besserer Einzelball ("+best+")":"gleich viel wie dein besserer Einzelball"}. Dieser Abstand ist deine Streuung: er verschwindet nicht durch längere Schläge, sondern durch Wiederholbarkeit. Für Punkte, Handicap und Score Differential zählt allein Ball 1.</div></div>`;
+ }else{
+  h+=`<div class="card"><div class="lbl" style="margin-bottom:2px">Loch für Loch</div><div class="scroll"><table class="tbl cmp">
+   <tr><th>Loch</th><th>m</th><th>Par</th><th>Idx</th><th>Vorg</th><th>Schl</th><th>bis Grün</th><th>Putts</th><th>Straf</th><th>Pkt</th></tr>`;
+  S.rows.forEach(x=>{h+=`<tr><td class="num">${x.n}</td><td class="num" style="color:var(--mut)">${x.m||"–"}</td><td class="num">${x.par}</td>
+   <td class="num" style="color:var(--mut)">${x.idx}</td><td class="num tracerTxt">${x.vor}</td><td class="num" style="font-weight:700">${x.s||"–"}</td>
+   <td class="num">${x.s?x.bis:"–"}</td><td class="num">${x.s?x.p:"–"}</td><td class="num" style="color:${x.pen?"var(--bad)":"var(--mut)"}">${x.pen||"–"}</td>
+   <td class="num" style="font-weight:800">${x.pts==null?"–":x.pts}</td></tr>`;});
+  h+=`<tr><td style="font-weight:800">Σ</td><td></td><td class="num" style="font-weight:800">${S.par}</td><td></td><td class="num" style="font-weight:800">${S.ch}</td>
+   <td class="num" style="font-weight:800">${S.schlaege}</td><td class="num" style="font-weight:800">${S.bis}</td><td class="num" style="font-weight:800">${S.putts}</td>
+   <td class="num" style="font-weight:800">${S.strafen}</td><td class="num tracerTxt" style="font-weight:800">${S.punkte}</td></tr></table></div></div>`;
+ }
 
- if(Object.keys(S.byPar).length>1){
-  h+=`<div class="card"><div class="lbl" style="margin-bottom:2px">Nach Par</div><table class="tbl">
+ (nb==2?[["Ball 1",S],["Ball 2",S2]]:[["",S]]).forEach(pair=>{
+  const lab=pair[0], X=pair[1];
+  if(Object.keys(X.byPar).length<2)return;
+  h+=`<div class="card"><div class="lbl" style="margin-bottom:2px">Nach Par${lab?" · "+lab:""}</div><table class="tbl">
    <tr><th>Par</th><th>Löcher</th><th>Schläge</th><th>zu Par</th><th>Ø bis Grün</th><th>Ø Punkte</th></tr>`;
-  [3,4,5].forEach(p=>{const b=S.byPar[p];if(!b)return;
+  [3,4,5].forEach(p=>{const b=X.byPar[p];if(!b)return;
    h+=`<tr><td>Par ${p}</td><td class="num">${b.n}</td><td class="num">${b.s}</td><td class="num">${b.s-b.par>=0?"+":""}${b.s-b.par}</td>
     <td class="num">${f1(b.bis/b.n)}</td><td class="num" style="font-weight:800">${f1(b.pts/b.n)}</td></tr>`;});
   h+=`</table></div>`;
- }
+ });
 
- h+=`<div class="card"><div class="lbl">Was die Runde gekostet hat</div><div class="bd">
-  <div><span class="lbl">Strafschläge</span><div class="bv" style="color:${S.strafen?"var(--bad)":"inherit"}">${S.strafen}</div></div>
-  <div><span class="lbl">Putts über 2</span><div class="bv" style="color:${S.extraPutts?"var(--warn)":"inherit"}">${S.extraPutts}</div></div>
-  <div><span class="lbl">ohne beides</span><div class="bv tracerTxt">${S.oPunkte}</div></div></div>
-  <div class="rdnote">Ohne Strafschläge und ohne die Putts über zwei wären es <b>${S.oSchlaege} Schläge</b> und <b>${S.oPunkte} Punkte</b> gewesen — das ist die Obergrenze des Spiels dieser Runde. Beide Posten sind eng umrissen und trainierbar.</div></div>`;
+ (nb==2?[["Ball 1",S],["Ball 2",S2]]:[["",S]]).forEach(pair=>{
+  const lab=pair[0], X=pair[1];
+  h+=`<div class="card"><div class="lbl">Was die Runde gekostet hat${lab?" · "+lab:""}</div><div class="bd">
+   <div><span class="lbl">Strafschläge</span><div class="bv" style="color:${X.strafen?"var(--bad)":"inherit"}">${X.strafen}</div></div>
+   <div><span class="lbl">Putts über 2</span><div class="bv" style="color:${X.extraPutts?"var(--warn)":"inherit"}">${X.extraPutts}</div></div>
+   <div><span class="lbl">ohne beides</span><div class="bv tracerTxt">${X.oPunkte}</div></div></div>
+   <div class="rdnote">Ohne Strafschläge und ohne die Putts über zwei wären es <b>${X.oSchlaege} Schläge</b> und <b>${X.oPunkte} Punkte</b> gewesen — das ist die Obergrenze des Spiels dieser Runde. Beide Posten sind eng umrissen und trainierbar.</div></div>`;
+ });
 
  if(S.sd){
   h+=`<div class="card"><div class="lbl">Score Differential (WHS)</div><div class="bd">`;
   if(S.sd.sd9!=null)h+=`<div><span class="lbl">SD 9 gespielt</span><div class="bv">${f1(S.sd.sd9)}</div></div>
    <div><span class="lbl">SD 9 berechnet</span><div class="bv">${f1((S.sd.hi*1.04+2.4)/2)}</div></div>`;
   h+=`<div><span class="lbl">SD 18</span><div class="bv tracerTxt">${f1(S.sd.sd18)}</div></div></div>
-   <div class="rdnote">Bei Index ${f1(S.sd.hi)} und Slope ${S.sd.slope}. Das Course Rating fällt aus der Rechnung heraus; jeder Punkt über ${S.zumHcp} ist ${f1(113/S.sd.slope)} Differentialpunkte wert. Gilt nur, wenn die Runde vorher als EDS angemeldet war.</div></div>`;
+   <div class="rdnote">Bei Index ${f1(S.sd.hi)} und Slope ${S.sd.slope}. Das Course Rating fällt aus der Rechnung heraus; jeder Punkt über ${S.zumHcp} ist ${f1(113/S.sd.slope)} Differentialpunkte wert. Gilt nur, wenn die Runde vorher als EDS angemeldet war.${nb==2?" Gerechnet mit Ball 1 — nur der erste Ball ist zählbar.":""}</div></div>`;
  }else{
   h+=`<div class="card"><div class="lbl">Score Differential</div><div class="rdnote">Für die WHS-Rechnung fehlen ${!rdHi()?"dein Handicap Index":""}${(!rdHi()&&!(r.slope||(courseById(r.courseId)||{}).slope))?" und ":""}${!(r.slope||(courseById(r.courseId)||{}).slope)?"der Slope des Platzes":""}. Index unten eintragen, Slope beim Platz.</div>
    <div class="twocol" style="margin-top:10px"><div><div class="inlbl">Handicap Index</div><input type="number" step="0.1" class="in" id="rdHiIn" style="padding:11px" value="${rdHi()||""}"></div><div style="display:flex;align-items:flex-end"><button class="go" id="rdHiSave" style="width:100%;padding:13px">Speichern</button></div></div></div>`;
@@ -1479,6 +1625,13 @@ function ceValidate(){
 
 /* --- Events --- */
 $("#rdStart").onclick=rdStartRound;
+$$("#rdNewBallSeg .seg").forEach(e=>e.onclick=()=>{rdNewBalls=+e.dataset.nb;
+ $$("#rdNewBallSeg .seg").forEach(t=>t.classList.toggle("on",t==e));});
+$$("#rdBallMode .seg").forEach(e=>e.onclick=()=>{ if(!rdCur)return;
+ const nb=+e.dataset.nb;
+ if(nb==1 && rdCur.holes.some(x=>+x.s2>0) && !confirm("Auf einen Ball zurückstellen? Die Werte von Ball 2 bleiben gespeichert, werden aber nicht mehr angezeigt und nicht mitgewertet."))return;
+ rdCur.balls=nb; rdCurSave(); renderRdPlay();
+ toast(nb==2?"Zwei Bälle":"Ein Ball"); });
 $$("#rdPlay .stpb").forEach(b=>b.onclick=()=>rdStep(b.closest(".stp").dataset.f,+b.dataset.d));
 $("#rdPrev").onclick=()=>{if(rdHole>0){rdHole--;renderRdPlay();}};
 $("#rdNext").onclick=()=>{const c=courseById(rdCur.courseId);if(rdHole<c.holes.length-1){rdHole++;renderRdPlay();}else{rdFinishRound();}};
@@ -1489,7 +1642,7 @@ $("#rdFinish").onclick=()=>rdFinishRound();
 $("#rdTblFinish").onclick=()=>rdFinishRound();
 $("#rdAbort").onclick=()=>{if(confirm("Runde verwerfen?")){ROUNDS=ROUNDS.filter(x=>x.id!=rdCur.id);saveR();rdCur=null;rdShow("home");toast("Verworfen");}};
 function rdFinishRound(){ if(!rdCur)return;
- if(!rdCur.holes.some(x=>x.s)){toast("Noch keine Schläge erfasst");return;}
+ if(!rdCur.holes.some(x=>(+x.s||0)||(+x.s2||0))){toast("Noch keine Schläge erfasst");return;}
  rdCurSave(); rdDetailId=rdCur.id; rdCur=null; rdShow("detail"); toast("Runde gespeichert"); }
 $("#rdNewCourse").onclick=()=>{rdEditId=null;rdEditHoles=[];rdShow("edit");};
 $$("#rdEdit .seg[data-hn]").forEach(s=>s.onclick=()=>{rdEditHn=+s.dataset.hn;
