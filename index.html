@@ -178,21 +178,6 @@ canvas{width:100%;height:230px;display:block}
 .tbl.cmp th{font-size:9.5px;letter-spacing:.2px}
 .tbl.cmp input.cin{width:40px;padding:6px 2px;font-size:14px}
 .rdbtns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-/* Zwei-Ball-Erfassung */
-.stp2{display:grid;grid-template-columns:1fr auto auto;gap:9px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
-.stp2:last-child{border-bottom:none}
-.stp2 .stpl{font-size:14px}
-.stpg{display:flex;align-items:center;gap:4px}
-.stpg .stpb{width:36px;height:42px;font-size:21px;border-radius:10px}
-.stpg .stpv{width:26px;font-size:22px}
-.bhd{display:grid;grid-template-columns:1fr auto auto;gap:9px;padding-bottom:5px}
-.bhd b{width:106px;text-align:center;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--mut)}
-.rd2pts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-.rd2pts>div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 4px}
-.rd2pts .lbl{display:block;font-size:10px;margin-bottom:2px}
-.rd2pts b{font-size:20px;font-weight:800}
-.tbl th.b2s,.tbl td.b2s{border-left:2px solid #2b3a31}
-.tbl th.bgrp{font-size:9.5px;letter-spacing:.5px;color:var(--mut);padding-bottom:2px}
 .rdbtns button{padding:12px 4px;font-size:14px}
 .rdnote{font-size:13px;color:var(--mut);line-height:1.55;margin-top:10px}
 </style>
@@ -399,14 +384,21 @@ canvas{width:100%;height:230px;display:block}
    <div class="card">
     <div class="lbl" style="margin-bottom:9px">Neue Runde</div>
     <div class="chips" id="rdCourseChips"></div>
+    <div id="rdPartRow" style="margin-top:10px;display:none">
+     <div class="inlbl" style="text-align:left">Gespielte Löcher</div>
+     <div class="statusrow" style="margin-top:0" id="rdPartSeg">
+      <div class="seg on" data-part="18">Alle 18</div><div class="seg" data-part="out">Out 1–9</div><div class="seg" data-part="in">In 10–18</div>
+     </div>
+    </div>
     <div class="twocol" style="margin-top:9px">
      <div><div class="inlbl">Datum</div><input type="date" class="in" id="rdDate" style="font-size:16px;padding:11px"></div>
-     <div><div class="inlbl">Vorgabe (CH)</div><input type="number" class="in" id="rdCh" inputmode="numeric" style="padding:11px"></div>
+     <div><div class="inlbl">Handicap Index</div><input type="number" step="0.1" class="in" id="rdHiHome" style="padding:11px" placeholder="54.0"></div>
     </div>
-    <div style="margin-top:10px"><div class="inlbl">B&auml;lle</div>
-     <div class="statusrow" id="rdNewBallSeg" style="margin-top:0"><div class="seg on" data-nb="1">1 Ball</div><div class="seg" data-nb="2">2 B&auml;lle</div></div></div>
+    <div style="margin-top:9px"><div class="inlbl">Vorgabe für diese Runde (Course Handicap)</div>
+     <input type="number" class="in" id="rdCh" inputmode="numeric" style="padding:11px"></div>
     <div class="hint" id="rdChHint"></div>
     <button class="addbtn" id="rdStart">Runde starten</button>
+    <button class="go" id="rdHomeBag" style="width:100%;margin-top:8px;padding:12px">Schlägerweiten und Wedge-Matrix</button>
    </div>
 
    <div class="card">
@@ -452,15 +444,10 @@ canvas{width:100%;height:230px;display:block}
     <div class="pbarw"><div class="pbar" id="rdBar" style="width:0%"></div></div>
    </div>
 
-   <div class="statusrow" id="rdBallMode" style="margin:0 0 13px"><div class="seg on" data-nb="1">1 Ball</div><div class="seg" data-nb="2">2 Bälle</div></div>
-
    <div class="card">
-    <div id="rdStp1">
-     <div class="stp" data-f="s"><div class="stpl">Schläge</div><button class="stpb" data-d="-1">−</button><div class="stpv num" id="rdVs">0</div><button class="stpb" data-d="1">+</button></div>
-     <div class="stp" data-f="p"><div class="stpl">Putts</div><button class="stpb" data-d="-1">−</button><div class="stpv num" id="rdVp">0</div><button class="stpb" data-d="1">+</button></div>
-     <div class="stp" data-f="pen" style="border-bottom:none"><div class="stpl">Strafschläge</div><button class="stpb" data-d="-1">−</button><div class="stpv num" id="rdVpen">0</div><button class="stpb" data-d="1">+</button></div>
-    </div>
-    <div id="rdStp2" style="display:none"></div>
+    <div class="stp" data-f="s"><div class="stpl">Schläge</div><button class="stpb" data-d="-1">−</button><div class="stpv num" id="rdVs">0</div><button class="stpb" data-d="1">+</button></div>
+    <div class="stp" data-f="p"><div class="stpl">Putts</div><button class="stpb" data-d="-1">−</button><div class="stpv num" id="rdVp">0</div><button class="stpb" data-d="1">+</button></div>
+    <div class="stp" data-f="pen" style="border-bottom:none"><div class="stpl">Strafschläge</div><button class="stpb" data-d="-1">−</button><div class="stpv num" id="rdVpen">0</div><button class="stpb" data-d="1">+</button></div>
     <div class="rdpts" id="rdHolePts">–</div>
    </div>
 
@@ -468,7 +455,8 @@ canvas{width:100%;height:230px;display:block}
     <button class="go" id="rdPrev" style="flex:1;padding:14px;font-size:15px">Zurück</button>
     <button class="go" id="rdNext" style="flex:2;padding:14px;font-size:15px;border-color:var(--tracer);color:var(--tracer)">Weiter</button>
    </div>
-   <div class="rdbtns">
+   <div class="rdbtns" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <button class="go" id="rdToBag" style="border-color:var(--sky);color:var(--sky)">Weiten</button>
     <button class="go" id="rdToTable">Tabelle</button>
     <button class="go" id="rdFinish">Beenden</button>
     <button class="go" id="rdAbort" style="color:var(--bad);border-color:#3a2626">Verwerfen</button>
@@ -493,6 +481,47 @@ canvas{width:100%;height:230px;display:block}
   <!-- Auswertung -->
   <div id="rdDetail" style="display:none"></div>
 
+
+  <!-- Schlägerweiten / Wedge-Matrix -->
+  <div id="rdBag" style="display:none">
+   <div class="card">
+    <div class="lbl" style="margin-bottom:9px">Welcher Schläger?</div>
+    <div class="twocol">
+     <div><div class="inlbl">Zieldistanz m</div><input type="number" class="in" id="bagD" inputmode="numeric" placeholder="95"></div>
+     <div><div class="inlbl">Situation</div>
+      <div class="statusrow" style="margin-top:0" id="bagMode">
+       <div class="seg on" data-m="med">offen</div><div class="seg" data-m="carry">Carry</div>
+      </div></div>
+    </div>
+    <div class="rdpts" id="bagOut" style="color:var(--mut);text-align:left;line-height:1.6">Distanz eingeben</div>
+    <div class="hint" id="bagRule">Offen: der Schläger, dessen <b>Median</b> am nächsten liegt. Carry (Wasser, Bunker, Frontkante): der kürzeste, dessen <b>p25</b> die Distanz noch trägt.</div>
+   </div>
+
+   <div class="card">
+    <div class="lbl" style="margin-bottom:2px">Leiter</div>
+    <div class="scroll"><table class="tbl cmp" id="bagLadder"></table></div>
+   </div>
+
+   <div class="card">
+    <div class="lbl" style="margin-bottom:2px">Eisen und Driver</div>
+    <div class="scroll"><table class="tbl cmp" id="bagIrons"></table></div>
+    <div class="hint">Garmin R10, 17.–19.08.2026, gemessener Ballflug. <span class="tracerTxt">Grün</span> = die vier Schläger mit trennenden Nachbarn.</div>
+   </div>
+
+   <div class="card">
+    <div class="lbl" style="margin-bottom:2px">Wedge-Matrix</div>
+    <div class="scroll"><table class="tbl cmp" id="bagWedge"></table></div>
+    <div class="hint">Anlage Adlisberg Box 4, 20.08.2026, eine Session, eine Skala. 9 Uhr ist beim 52° und 56° nicht vermessen.</div>
+   </div>
+
+   <div class="card">
+    <div class="lbl">Zwei Skalen</div>
+    <div class="rdnote">Eisen und Driver stammen aus der R10-Radarmessung, die Wedge-Matrix aus der Anlagenanzeige. Der PW steht in beiden: <b>112,4 m</b> (R10) und <b>106,5 m</b> (Anlage). Die Nahtstelle ist geprüft — das 52° voll wurde einmal auf beiden Skalen gemessen und ergab 79,1 gegen 79,0 m. Am kurzen Ende sind die Skalen also deckungsgleich, oben nicht.</div>
+   </div>
+
+   <button class="go" id="bagBack" style="width:100%;padding:14px;font-size:15px">Zurück</button>
+  </div>
+
   <!-- Platz-Editor -->
   <div id="rdEdit" style="display:none">
    <div class="card">
@@ -506,7 +535,11 @@ canvas{width:100%;height:230px;display:block}
       <div class="statusrow" style="margin-top:0"><div class="seg on" data-hn="9">9</div><div class="seg" data-hn="18">18</div></div></div>
      <div><div class="inlbl">Slope</div><input type="number" class="in" id="ceSlope" inputmode="numeric" style="padding:11px" placeholder="113"></div>
     </div>
-    <div class="hint">Slope nur für das Score Differential. Leer lassen, wenn unbekannt.</div>
+    <div class="twocol" style="margin-top:9px">
+     <div><div class="inlbl">Course Rating</div><input type="number" step="0.1" class="in" id="ceCr" style="padding:11px" placeholder="72.0"></div>
+     <div></div>
+    </div>
+    <div class="hint">Slope und CR stehen auf der Scorekarte bzw. der Vorgabentabelle am ersten Abschlag. Sie steuern den Vorgabevorschlag und das Score Differential.</div>
     <div class="scroll" style="margin-top:11px"><table class="tbl cmp" id="ceTbl"></table></div>
     <div style="display:flex;gap:8px;margin-top:12px">
      <button class="addbtn" id="ceSave" style="margin:0;flex:2">Speichern</button>
@@ -1223,10 +1256,19 @@ $("#bReset").onclick=()=>{if(confirm("Alle lokalen Daten durch die eingebauten "
 const RKEY=KEY+"_rounds", CKEY=KEY+"_courses";
 
 const SEEDCOURSES=[{
- id:"augwil_gelb", name:"Golf Augwil", tee:"Gelb", slope:136, seed:true,
+ id:"augwil_gelb", name:"Golf Augwil", tee:"Gelb", slope:136, cr:null, seed:true,
+ chFix:{9:33}, /* aus der Runde vom 20.08. zurueckgerechnet; CR unbekannt */
  holes:[{n:1,par:5,idx:9,m:444},{n:2,par:4,idx:3,m:324},{n:3,par:3,idx:13,m:169},
         {n:4,par:4,idx:11,m:334},{n:5,par:5,idx:5,m:459},{n:6,par:4,idx:7,m:338},
         {n:7,par:3,idx:15,m:159},{n:8,par:5,idx:1,m:446},{n:9,par:3,idx:17,m:118}]
+},{
+ id:"alvaneu_gelb", name:"Alvaneu Bad", tee:"Gelb", slope:131, cr:70.0, seed:true,
+ holes:[{n:1,par:4,idx:11,m:null},{n:2,par:4,idx:7,m:null},{n:3,par:5,idx:13,m:null},
+        {n:4,par:4,idx:1,m:null},{n:5,par:4,idx:5,m:null},{n:6,par:4,idx:3,m:null},
+        {n:7,par:3,idx:15,m:null},{n:8,par:5,idx:9,m:null},{n:9,par:3,idx:17,m:null},
+        {n:10,par:4,idx:10,m:null},{n:11,par:5,idx:4,m:null},{n:12,par:4,idx:2,m:null},
+        {n:13,par:3,idx:18,m:null},{n:14,par:4,idx:14,m:null},{n:15,par:4,idx:6,m:null},
+        {n:16,par:5,idx:12,m:null},{n:17,par:3,idx:8,m:null},{n:18,par:4,idx:16,m:null}]
 }];
 const SEEDROUNDS=[{
  id:"augwil_20260820", date:"2026-08-20", courseId:"augwil_gelb",
@@ -1240,6 +1282,9 @@ function rdJson(k,fb){try{const s=localStorage.getItem(k);if(!s)return fb;const 
 function rdPut(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){toast("Speichern fehlgeschlagen");}}
 let COURSES=rdJson(CKEY,null), ROUNDS=rdJson(RKEY,null);
 if(!COURSES){COURSES=JSON.parse(JSON.stringify(SEEDCOURSES));rdPut(CKEY,COURSES);}
+else{/* Seed-Merge: neue eingebaute Plaetze nachtragen, vorhandene nie ueberschreiben */
+ let add=0; SEEDCOURSES.forEach(sc=>{if(!COURSES.some(c=>c.id==sc.id)){COURSES.push(JSON.parse(JSON.stringify(sc)));add++;}});
+ if(add)rdPut(CKEY,COURSES);}
 if(!ROUNDS){ROUNDS=JSON.parse(JSON.stringify(SEEDROUNDS));rdPut(RKEY,ROUNDS);}
 function saveC(){rdPut(CKEY,COURSES);} function saveR(){rdPut(RKEY,ROUNDS);}
 function courseById(id){return COURSES.find(c=>c.id==id)||null;}
@@ -1259,30 +1304,19 @@ function allocate(ch,holes){
 }
 function holePts(par,vor,s){ if(!s)return null; return Math.max(0, 2+par+vor-s); }
 
-/* --- Zwei Baelle: Ball 2 liegt als s2/p2/pen2 im selben Loch-Eintrag --- */
-function nBalls(r){ return (r && +r.balls==2) ? 2 : 1; }
-function bE(e,b){
- if(!e)return {s:0,p:0,pen:0};
- const a={s:+e.s||0,p:+e.p||0,pen:+e.pen||0};
- if(b==2)return {s:+e.s2||0,p:+e.p2||0,pen:+e.pen2||0};
- if(b=="best"){
-  const c={s:+e.s2||0,p:+e.p2||0,pen:+e.pen2||0};
-  if(!c.s)return a; if(!a.s)return c;
-  if(c.s<a.s)return c; if(c.s>a.s)return a;
-  return c.p<a.p?c:a;
- }
- return a;
-}
-
 /* --- Auswertung einer Runde --- */
-function rdSummary(r,b){
- b=b||1;
+function rdHolesOf(r){
  const c=courseById(r.courseId);
- const holes=(c&&c.holes)||r.holes.map(h=>({n:h.n,par:4,idx:h.n,m:null}));
+ const all=(c&&c.holes)||r.holes.map(h=>({n:h.n,par:4,idx:h.n,m:null}));
+ return all.filter(h=>r.holes.some(x=>x.n==h.n));
+}
+function rdSummary(r){
+ const c=courseById(r.courseId);
+ const holes=rdHolesOf(r);
  const A=allocate(r.ch,holes);
  const rows=holes.map(h=>{
-  const e=bE(r.holes.find(x=>x.n==h.n),b);
-  const s=e.s, p=e.p, pen=e.pen;
+  const e=r.holes.find(x=>x.n==h.n)||{s:0,p:0,pen:0};
+  const s=+e.s||0, p=+e.p||0, pen=+e.pen||0;
   const vor=A[h.n]||0;
   return {n:h.n,par:h.par,idx:h.idx,m:h.m,vor:vor,net:h.par+vor,s:s,p:p,pen:pen,
           bis:Math.max(0,s-p-pen), pts:holePts(h.par,vor,s)};
@@ -1313,42 +1347,54 @@ function rdSummary(r,b){
   else if(S.n==18){ S.sd={sd18:hi-(S.punkte-36)*113/slope, slope:slope, hi:hi}; }
  }
  S.zumHcp=S.n==9?18:36;
- S.ball=b;
  return S;
 }
 function rdHi(){try{return +localStorage.getItem(KEY+"_hi")||0;}catch(e){return 0;}}
 function rdSetHi(v){try{localStorage.setItem(KEY+"_hi",String(v));}catch(e){}}
 
 /* --- Zustand --- */
-let rdMode="home", rdCur=null, rdHole=0, rdDetailId=null, rdEditId=null, rdCourseSel=null, rdEditHn=9, rdEditHoles=[], rdNewBalls=1;
+let rdMode="home", rdPart="18", rdCur=null, rdHole=0, rdDetailId=null, rdEditId=null, rdCourseSel=null, rdEditHn=9, rdEditHoles=[];
 
 function rdShow(m){rdMode=m;
- ["rdHome","rdPlay","rdTable","rdDetail","rdEdit"].forEach(id=>{const e=$("#"+id);if(e)e.style.display=(id=="rd"+m[0].toUpperCase()+m.slice(1))?"":"none";});
+ ["rdHome","rdPlay","rdTable","rdDetail","rdEdit","rdBag"].forEach(id=>{const e=$("#"+id);if(e)e.style.display=(id=="rd"+m[0].toUpperCase()+m.slice(1))?"":"none";});
  if(m=="home")renderRdHome(); if(m=="play")renderRdPlay(); if(m=="table")renderRdTable();
- if(m=="detail")renderRdDetail(); if(m=="edit")renderCourseEdit();
+ if(m=="detail")renderRdDetail(); if(m=="edit")renderCourseEdit(); if(m=="bag")renderBag();
  window.scrollTo(0,0);
 }
 
 /* --- Home --- */
-function defCh(c){ const hi=rdHi(); if(!c)return ""; 
- if(c.id=="augwil_gelb")return 33;
- if(hi&&c.slope){const n=c.holes.length;return Math.round((n==9?hi/2:hi)*c.slope/113);} return ""; }
+function partHoles(c,part){ if(!c)return [];
+ if(c.holes.length<=9||part=="18")return c.holes;
+ return part=="in"?c.holes.slice(9):c.holes.slice(0,9); }
+function defCh(c,part){ if(!c)return "";
+ const H=partHoles(c,part), n=H.length, par=H.reduce((a,h)=>a+h.par,0), half=n<=9;
+ if(c.chFix&&c.chFix[n]!=null)return c.chFix[n];
+ const hi=rdHi(); if(!hi||!c.slope)return "";
+ let v=(half?hi/2:hi)*c.slope/113;
+ if(c.cr!=null&&!isNaN(c.cr)) v+=(half?c.cr/2:c.cr)-par;
+ return Math.round(v); }
 function renderRdHome(){
  if(!rdCourseSel||!courseById(rdCourseSel))rdCourseSel=COURSES.length?COURSES[0].id:null;
  $("#rdCourseChips").innerHTML=COURSES.map(c=>`<div class="chip ${c.id==rdCourseSel?"on":""}" data-c="${c.id}">${c.name}${c.tee?" · "+c.tee:""} <span style="opacity:.6">${c.holes.length} L</span></div>`).join("")||`<span class="hint">Noch kein Platz angelegt.</span>`;
  $$("#rdCourseChips .chip").forEach(el=>el.onclick=()=>{rdCourseSel=el.dataset.c;renderRdHome();});
  const c=courseById(rdCourseSel);
+ const is18=!!(c&&c.holes.length>9);
+ $("#rdPartRow").style.display=is18?"":"none";
+ if(!is18)rdPart="18";
+ $$("#rdPartSeg .seg").forEach(el=>el.classList.toggle("on",el.dataset.part==rdPart));
  if(!$("#rdDate").value)$("#rdDate").value=today();
- $("#rdCh").value=defCh(c);
- $("#rdChHint").textContent=c?`${c.holes.length} Löcher · Par ${c.holes.reduce((a,h)=>a+h.par,0)}${c.slope?" · Slope "+c.slope:""} · Spiel zum Handicap = ${c.holes.length==9?18:36} Punkte`:"";
- $$("#rdNewBallSeg .seg").forEach(e=>e.classList.toggle("on",+e.dataset.nb==rdNewBalls));
+ $("#rdHiHome").value=rdHi()||"";
+ $("#rdCh").value=defCh(c,rdPart);
+ const H=partHoles(c,rdPart), par=H.reduce((a,h)=>a+h.par,0);
+ $("#rdChHint").innerHTML=c?`${H.length} Löcher · Par ${par}${c.slope?" · Slope "+c.slope:""}${c.cr!=null?" · CR "+c.cr:""} · Spiel zum Handicap = <b>${H.length<=9?18:36} Punkte</b>`
+   +(rdHi()?"":`<br><span style="color:var(--warn)">Handicap Index eintragen, dann schlage ich die Vorgabe vor.</span>`):"";
  /* Rundenliste */
  const L=ROUNDS.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.id>a.id?1:-1));
  const head=`<div class="rdrow" style="border:none;padding-bottom:2px;cursor:default"><span class="rdd lbl">Datum</span><span class="rdn lbl">Platz</span><span class="rds lbl">Schl</span><span class="rdp lbl" style="color:var(--mut)">Pkt</span></div>`;
- $("#rdList").innerHTML=L.length?head+L.map(r=>{const nb=nBalls(r),S=rdSummary(r,1),S2=nb==2?rdSummary(r,2):null;
+ $("#rdList").innerHTML=L.length?head+L.map(r=>{const S=rdSummary(r);
   return `<div class="rdrow" data-r="${r.id}"><span class="rdd num">${(r.date||"").slice(8,10)}.${(r.date||"").slice(5,7)}.${(r.date||"").slice(2,4)}</span>
-   <span class="rdn">${r.courseName||""}${r.tee?" · "+r.tee:""}${nb==2?` <span style="opacity:.55;font-weight:600">· 2 Bälle</span>`:""}</span>
-   <span class="rds num">${nb==2?(S.schlaege||"–")+"/"+(S2.schlaege||"–"):(S.schlaege||"–")}</span><span class="rdp num"${nb==2?` style="font-size:15px"`:""}>${nb==2?S.punkte+"/"+S2.punkte:S.punkte}</span></div>`;}).join(""):`<div class="hint">Noch keine Runde erfasst.</div>`;
+   <span class="rdn">${r.courseName||""}${r.tee?" · "+r.tee:""}</span>
+   <span class="rds num">${S.schlaege||"–"}</span><span class="rdp num">${S.punkte}</span></div>`;}).join(""):`<div class="hint">Noch keine Runde erfasst.</div>`;
  $$("#rdList .rdrow[data-r]").forEach(el=>el.onclick=()=>{rdDetailId=el.dataset.r;rdShow("detail");});
  /* Platzliste */
  $("#rdCourseList").innerHTML=COURSES.map(c=>`<div class="rdrow" data-ce="${c.id}"><span class="rdn">${c.name}${c.tee?" · "+c.tee:""}</span><span class="rds num">${c.holes.length} L</span><span class="rds num">Par ${c.holes.reduce((a,h)=>a+h.par,0)}</span></div>`).join("");
@@ -1360,225 +1406,121 @@ function rdStartRound(){
  const c=courseById(rdCourseSel); if(!c){toast("Kein Platz gewählt");return;}
  const ch=parseInt($("#rdCh").value,10);
  if(isNaN(ch)){toast("Vorgabe eingeben");return;}
+ const H=partHoles(c,rdPart);
  rdCur={id:rid(),date:$("#rdDate").value||today(),courseId:c.id,courseName:c.name,tee:c.tee||"",
-        ch:ch,slope:c.slope||null,balls:rdNewBalls==2?2:1,
-        holes:c.holes.map(h=>({n:h.n,s:0,p:0,pen:0,s2:0,p2:0,pen2:0}))};
+        part:rdPart,ch:ch,slope:c.slope||null,cr:(c.cr!=null?c.cr:null),
+        holes:H.map(h=>({n:h.n,s:0,p:0,pen:0}))};
  rdHole=0; rdShow("play");
 }
 function rdCurSave(){ if(!rdCur)return; const i=ROUNDS.findIndex(r=>r.id==rdCur.id);
  if(i>=0)ROUNDS[i]=rdCur; else ROUNDS.push(rdCur); saveR(); }
 
 /* --- Live --- */
-function ptCol(r){ return r.s ? (r.pts>=2?"var(--tracer)":(r.pts==1?"var(--warn)":"var(--bad)")) : "var(--mut)"; }
 function renderRdPlay(){
  if(!rdCur){rdShow("home");return;}
- const c=courseById(rdCur.courseId), nb=nBalls(rdCur);
- const S=rdSummary(rdCur,1), S2=nb==2?rdSummary(rdCur,2):null, SB=nb==2?rdSummary(rdCur,"best"):null;
- if(rdHole<0)rdHole=0; if(rdHole>=c.holes.length)rdHole=c.holes.length-1;
- const h=c.holes[rdHole], row=S.rows[rdHole], e=rdCur.holes.find(x=>x.n==h.n);
+ const HS=rdHolesOf(rdCur), S=rdSummary(rdCur);
+ if(rdHole<0)rdHole=0; if(rdHole>=HS.length)rdHole=HS.length-1;
+ const h=HS[rdHole], row=S.rows[rdHole], e=rdCur.holes.find(x=>x.n==h.n);
  $("#rdPlayCourse").textContent=rdCur.courseName+(rdCur.tee?" · "+rdCur.tee:"")+" · Vorgabe "+rdCur.ch;
- $("#rdHoleNo").textContent=h.n; $("#rdHoleTot").textContent=c.holes.length;
+ $("#rdHoleNo").textContent=h.n; $("#rdHoleTot").textContent=HS.length;
  $("#rdHolePar").textContent=h.par; $("#rdHoleIdx").textContent=h.idx;
  $("#rdHoleVor").textContent=row.vor; $("#rdHoleNet").textContent=row.net;
  $("#rdHoleM").textContent=h.m?h.m+" m":"–";
- $$("#rdBallMode .seg").forEach(x=>x.classList.toggle("on",+x.dataset.nb==nb));
- $("#rdStp1").style.display=nb==2?"none":"";
- $("#rdStp2").style.display=nb==2?"":"none";
- $("#rdBar").style.width=Math.round(100*(nb==2?SB.done:S.done)/c.holes.length)+"%";
- const pv=x=>x.s?x.pts:"–";
- if(nb==2){
-  $("#rdRunPts").innerHTML=`${S.punkte}<small style="opacity:.5"> / </small>${S2.punkte}`;
-  $("#rdRunPts").style.fontSize="27px";
-  $("#rdStp2").innerHTML=`<div class="bhd"><span></span><b>Ball 1</b><b>Ball 2</b></div>`+
-   [["s","Schläge"],["p","Putts"],["pen","Strafen"]].map(fl=>
-    `<div class="stp2" data-f="${fl[0]}"><div class="stpl">${fl[1]}</div>`+
-    [1,2].map(b=>`<div class="stpg"><button class="stpb" data-b="${b}" data-d="-1">−</button><div class="stpv num">${+e[b==2?fl[0]+"2":fl[0]]||0}</div><button class="stpb" data-b="${b}" data-d="1">+</button></div>`).join("")+
-    `</div>`).join("");
-  $$("#rdStp2 .stpb").forEach(btn=>btn.onclick=()=>rdStep(btn.closest(".stp2").dataset.f,+btn.dataset.d,+btn.dataset.b));
-  const r2=S2.rows[rdHole], rb=SB.rows[rdHole];
-  $("#rdHolePts").innerHTML=`<div class="rd2pts">
-   <div><span class="lbl">Ball 1</span><b style="color:${ptCol(row)}">${pv(row)}</b></div>
-   <div><span class="lbl">Ball 2</span><b style="color:${ptCol(r2)}">${pv(r2)}</b></div>
-   <div><span class="lbl">Bester</span><b class="tracerTxt">${pv(rb)}</b></div></div>
-   <div style="margin-top:9px;font-size:13px;color:var(--mut);font-weight:600">Netto-Par ${row.net} · bester Ball total ${SB.punkte} Pkt</div>`;
-  $("#rdHolePts").style.color="";
- }else{
-  $("#rdRunPts").textContent=S.punkte;
-  $("#rdRunPts").style.fontSize="34px";
-  $("#rdVs").textContent=+e.s||0; $("#rdVp").textContent=+e.p||0; $("#rdVpen").textContent=+e.pen||0;
-  const pt=row.pts, dn=row.s-row.net;
-  $("#rdHolePts").textContent = row.s ? (pt+" Punkt"+(pt==1?"":"e")+" · Netto-Par "+row.net+" · "+(dn===0?"genau getroffen":(dn<0?(-dn)+" unter":dn+" über"))) : "Schläge eintragen";
-  $("#rdHolePts").style.color = ptCol(row);
- }
+ $("#rdVs").textContent=e.s; $("#rdVp").textContent=e.p; $("#rdVpen").textContent=e.pen;
+ $("#rdRunPts").textContent=S.punkte;
+ $("#rdBar").style.width=Math.round(100*S.done/HS.length)+"%";
+ const pt=row.pts;
+ const dn=e.s-row.net;
+ $("#rdHolePts").textContent = e.s ? (pt+" Punkt"+(pt==1?"":"e")+" · Netto-Par "+row.net+" · "+(dn===0?"genau getroffen":(dn<0?(-dn)+" unter":dn+" über"))) : "Schläge eintragen";
+ $("#rdHolePts").style.color = e.s ? (pt>=2?"var(--tracer)":(pt==1?"var(--warn)":"var(--bad)")) : "var(--mut)";
  $("#rdPrev").disabled=rdHole==0; $("#rdPrev").style.opacity=rdHole==0?.4:1;
- $("#rdNext").textContent = rdHole==c.holes.length-1 ? "Letztes Loch" : "Weiter";
+ $("#rdNext").textContent = rdHole==HS.length-1 ? "Letztes Loch" : "Weiter";
 }
-function rdStep(f,d,b){
- if(!rdCur)return; b=(+b==2)?2:1;
- const c=courseById(rdCur.courseId), h=c.holes[rdHole];
+function rdStep(f,d){
+ if(!rdCur)return; const h=rdHolesOf(rdCur)[rdHole];
  const e=rdCur.holes.find(x=>x.n==h.n);
- const K=k=>b==2?k+"2":k;
- e[K(f)]=Math.max(0,Math.min(30,(+e[K(f)]||0)+d));
- const gs=+e[K("s")]||0;
- if((+e[K("p")]||0)>gs)e[K("p")]=gs;
- if((+e[K("pen")]||0)>gs)e[K("pen")]=gs;
+ e[f]=Math.max(0,Math.min(30,(+e[f]||0)+d));
+ if(f=="s"){ if(e.p>e.s)e.p=e.s; if(e.pen>e.s)e.pen=e.s; }
+ if(f=="p"&&e.p>e.s)e.p=e.s;
+ if(f=="pen"&&e.pen>e.s)e.pen=e.s;
  rdCurSave(); renderRdPlay();
 }
 
 /* --- Tabelle --- */
-function rdTblSumTxt(){
- const nb=nBalls(rdCur), S=rdSummary(rdCur,1);
- if(nb!=2)return S.schlaege+" Schläge · "+S.punkte+" Punkte · Vorgabe "+rdCur.ch;
- const S2=rdSummary(rdCur,2), SB=rdSummary(rdCur,"best");
- return "B1 "+S.schlaege+" Schl / "+S.punkte+" Pkt · B2 "+S2.schlaege+" / "+S2.punkte+" · bester "+SB.punkte;
-}
 function renderRdTable(){
  if(!rdCur){rdShow("home");return;}
- const c=courseById(rdCur.courseId), nb=nBalls(rdCur);
- const S=rdSummary(rdCur,1), S2=nb==2?rdSummary(rdCur,2):null;
- $("#rdTblCourse").textContent=rdCur.courseName+(rdCur.tee?" · "+rdCur.tee:"")+" · "+(rdCur.date||"").split("-").reverse().join(".")+(nb==2?" · 2 Bälle":"");
- $("#rdTblSum").textContent=rdTblSumTxt();
- const cin=(n,f,v)=>`<td><input class="cin num" data-h="${n}" data-f="${f}" inputmode="numeric" value="${v||""}"></td>`;
- let html;
- if(nb==2){
-  html=`<tr><th colspan="3"></th><th class="bgrp" colspan="4">Ball 1</th><th class="bgrp b2s" colspan="4">Ball 2</th></tr>
-  <tr><th>Loch</th><th>Par</th><th>Vorg</th><th>Schl</th><th>Putt</th><th>Straf</th><th>Pkt</th><th class="b2s">Schl</th><th>Putt</th><th>Straf</th><th>Pkt</th></tr>`;
-  S.rows.forEach((r,i)=>{ const b=S2.rows[i];
-   html+=`<tr class="${i==rdHole?"hl":""}"><td class="num">${r.n}</td><td class="num">${r.par}</td><td class="num tracerTxt">${r.vor}</td>`
-    +cin(r.n,"s",r.s)+cin(r.n,"p",r.p)+cin(r.n,"pen",r.pen)
-    +`<td class="num pcell" data-b="1" style="font-weight:800">${r.pts==null?"–":r.pts}</td>`
-    +cin(r.n,"s2",b.s).replace("<td","<td class=\"b2s\"")+cin(r.n,"p2",b.p)+cin(r.n,"pen2",b.pen)
-    +`<td class="num pcell" data-b="2" style="font-weight:800">${b.pts==null?"–":b.pts}</td></tr>`; });
-  html+=`<tr><td style="font-weight:800">Σ</td><td class="num" style="font-weight:800">${S.parAll}</td><td class="num" style="font-weight:800">${S.ch}</td>
-   <td class="num" style="font-weight:800">${S.schlaege}</td><td class="num" style="font-weight:800">${S.putts}</td><td class="num" style="font-weight:800">${S.strafen}</td>
-   <td class="num tracerTxt" style="font-weight:800">${S.punkte}</td>
-   <td class="num b2s" style="font-weight:800">${S2.schlaege}</td><td class="num" style="font-weight:800">${S2.putts}</td><td class="num" style="font-weight:800">${S2.strafen}</td>
-   <td class="num tracerTxt" style="font-weight:800">${S2.punkte}</td></tr>`;
- }else{
-  html=`<tr><th>Loch</th><th>Par</th><th>Idx</th><th>Vorg</th><th>Schl</th><th>Putts</th><th>Straf</th><th>Pkt</th></tr>`;
-  S.rows.forEach((r,i)=>{ html+=`<tr class="${i==rdHole?"hl":""}"><td class="num">${r.n}</td><td class="num">${r.par}</td><td class="num" style="color:var(--mut)">${r.idx}</td><td class="num tracerTxt">${r.vor}</td>`
-   +cin(r.n,"s",r.s)+cin(r.n,"p",r.p)+cin(r.n,"pen",r.pen)
-   +`<td class="num pcell" data-b="1" style="font-weight:800">${r.pts==null?"–":r.pts}</td></tr>`; });
-  html+=`<tr><td style="font-weight:800">Total</td><td class="num" style="font-weight:800">${S.parAll}</td><td></td><td class="num" style="font-weight:800">${S.ch}</td>
-   <td class="num" style="font-weight:800">${S.schlaege}</td><td class="num" style="font-weight:800">${S.putts}</td><td class="num" style="font-weight:800">${S.strafen}</td>
-   <td class="num tracerTxt" style="font-weight:800">${S.punkte}</td></tr>`;
- }
+ const S=rdSummary(rdCur);
+ $("#rdTblCourse").textContent=rdCur.courseName+(rdCur.tee?" · "+rdCur.tee:"")+" · "+(rdCur.date||"").split("-").reverse().join(".");
+ $("#rdTblSum").textContent=S.schlaege+" Schläge · "+S.punkte+" Punkte · Vorgabe "+rdCur.ch;
+ let html=`<tr><th>Loch</th><th>Par</th><th>Idx</th><th>Vorg</th><th>Schl</th><th>Putts</th><th>Straf</th><th>Pkt</th></tr>`;
+ S.rows.forEach((r,i)=>{ html+=`<tr class="${i==rdHole?"hl":""}"><td class="num">${r.n}</td><td class="num">${r.par}</td><td class="num" style="color:var(--mut)">${r.idx}</td><td class="num tracerTxt">${r.vor}</td>
+  <td><input class="cin num" data-h="${r.n}" data-f="s" inputmode="numeric" value="${r.s||""}"></td>
+  <td><input class="cin num" data-h="${r.n}" data-f="p" inputmode="numeric" value="${r.p||""}"></td>
+  <td><input class="cin num" data-h="${r.n}" data-f="pen" inputmode="numeric" value="${r.pen||""}"></td>
+  <td class="num" style="font-weight:800">${r.pts==null?"–":r.pts}</td></tr>`; });
+ html+=`<tr><td style="font-weight:800">Total</td><td class="num" style="font-weight:800">${S.parAll}</td><td></td><td class="num" style="font-weight:800">${S.ch}</td>
+  <td class="num" style="font-weight:800">${S.schlaege}</td><td class="num" style="font-weight:800">${S.putts}</td><td class="num" style="font-weight:800">${S.strafen}</td>
+  <td class="num tracerTxt" style="font-weight:800">${S.punkte}</td></tr>`;
  $("#rdTbl").innerHTML=html;
  $$("#rdTbl input.cin").forEach(inp=>{
   inp.onchange=inp.oninput=()=>{const e=rdCur.holes.find(x=>x.n==+inp.dataset.h);
    let v=parseInt(inp.value,10); if(isNaN(v)||v<0)v=0; if(v>30)v=30;
-   const f=inp.dataset.f, two=f.slice(-1)=="2", K=k=>two?k+"2":k;
-   e[f]=v;
-   const gs=+e[K("s")]||0;
-   if((+e[K("p")]||0)>gs)e[K("p")]=gs;
-   if((+e[K("pen")]||0)>gs)e[K("pen")]=gs;
-   rdCurSave();
-   $("#rdTblSum").textContent=rdTblSumTxt();
-   const tr=inp.closest("tr"), hn=+inp.dataset.h;
-   const A=rdSummary(rdCur,1).rows.find(x=>x.n==hn);
-   const c1=tr.querySelector('.pcell[data-b="1"]'); if(c1)c1.textContent=A.pts==null?"–":A.pts;
-   if(nBalls(rdCur)==2){ const B=rdSummary(rdCur,2).rows.find(x=>x.n==hn);
-    const c2=tr.querySelector('.pcell[data-b="2"]'); if(c2)c2.textContent=B.pts==null?"–":B.pts; }
-  };
+   e[inp.dataset.f]=v;
+   if(e.p>e.s)e.p=e.s; if(e.pen>e.s)e.pen=e.s;
+   rdCurSave(); const S2=rdSummary(rdCur);
+   $("#rdTblSum").textContent=S2.schlaege+" Schläge · "+S2.punkte+" Punkte · Vorgabe "+rdCur.ch;
+   const row=S2.rows.find(x=>x.n==+inp.dataset.h);
+   const td=inp.closest("tr").lastElementChild; td.textContent=row.pts==null?"–":row.pts;};
  });
 }
 
 /* --- Auswertung --- */
 function renderRdDetail(){
  const r=ROUNDS.find(x=>x.id==rdDetailId); if(!r){rdShow("home");return;}
- const nb=nBalls(r);
- const S=rdSummary(r,1), S2=nb==2?rdSummary(r,2):null, SB=nb==2?rdSummary(r,"best"):null;
- const diff=S.punkte-S.zumHcp;
+ const S=rdSummary(r), diff=S.punkte-S.zumHcp;
  const f1=v=>(Math.round(v*10)/10).toFixed(1);
- const hd=`${r.courseName}${r.tee?" · "+r.tee:""} · ${(r.date||"").split("-").reverse().join(".")}`;
- let h;
- if(nb==2){
-  h=`<div class="card hero" style="padding:16px">
-   <div class="lbl">${hd} · 2 Bälle</div>
-   <div class="big num" style="font-size:34px">${S.punkte}<small style="opacity:.5"> / </small>${S2.punkte}<small> Punkte</small></div>
-   <div class="meta num">
-    <div><span class="lbl">Bester Ball</span><span class="v tracerTxt">${SB.punkte}</span></div>
-    <div><span class="lbl">B1 zum Hcp</span><span class="v">${diff>=0?"+":""}${diff}</span></div>
-    <div><span class="lbl">Schläge</span><span class="v">${S.schlaege} / ${S2.schlaege}</span></div>
-    <div><span class="lbl">zu Par</span><span class="v">${S.zuPar>=0?"+":""}${S.zuPar} / ${S2.zuPar>=0?"+":""}${S2.zuPar}</span></div>
-    <div><span class="lbl">Putts</span><span class="v">${S.putts} / ${S2.putts}</span></div>
-    <div><span class="lbl">Strafen</span><span class="v" style="color:${(S.strafen||S2.strafen)?"var(--bad)":"inherit"}">${S.strafen} / ${S2.strafen}</span></div>
-    <div><span class="lbl">Vorgabe</span><span class="v tracerTxt">${S.ch}</span></div>
-   </div></div>`;
- }else{
-  h=`<div class="card hero" style="padding:16px">
-   <div class="lbl">${hd}</div>
-   <div class="big num">${S.punkte}<small> Punkte · ${diff>=0?"+":""}${diff} zum Handicap</small></div>
-   <div class="meta num">
-    <div><span class="lbl">Schläge</span><span class="v">${S.schlaege}</span></div>
-    <div><span class="lbl">zu Par</span><span class="v">${S.zuPar>=0?"+":""}${S.zuPar}</span></div>
-    <div><span class="lbl">Putts</span><span class="v">${S.putts}</span></div>
-    <div><span class="lbl">Strafen</span><span class="v" style="color:${S.strafen?"var(--bad)":"inherit"}">${S.strafen}</span></div>
-    <div><span class="lbl">Vorgabe</span><span class="v tracerTxt">${S.ch}</span></div>
-   </div></div>`;
- }
+ let h=`<div class="card hero" style="padding:16px">
+  <div class="lbl">${r.courseName}${r.tee?" · "+r.tee:""} · ${(r.date||"").split("-").reverse().join(".")}</div>
+  <div class="big num">${S.punkte}<small> Punkte · ${diff>=0?"+":""}${diff} zum Handicap</small></div>
+  <div class="meta num">
+   <div><span class="lbl">Schläge</span><span class="v">${S.schlaege}</span></div>
+   <div><span class="lbl">zu Par</span><span class="v">${S.zuPar>=0?"+":""}${S.zuPar}</span></div>
+   <div><span class="lbl">Putts</span><span class="v">${S.putts}</span></div>
+   <div><span class="lbl">Strafen</span><span class="v" style="color:${S.strafen?"var(--bad)":"inherit"}">${S.strafen}</span></div>
+   <div><span class="lbl">Vorgabe</span><span class="v tracerTxt">${S.ch}</span></div>
+  </div></div>`;
 
- if(nb==2){
-  h+=`<div class="card"><div class="lbl" style="margin-bottom:2px">Loch für Loch · beide Bälle</div><div class="scroll"><table class="tbl cmp">
-   <tr><th colspan="4"></th><th class="bgrp" colspan="4">Ball 1</th><th class="bgrp b2s" colspan="4">Ball 2</th><th class="bgrp b2s"></th></tr>
-   <tr><th>Loch</th><th>m</th><th>Par</th><th>Vorg</th><th>Schl</th><th>Putt</th><th>Straf</th><th>Pkt</th><th class="b2s">Schl</th><th>Putt</th><th>Straf</th><th>Pkt</th><th class="b2s">best</th></tr>`;
-  S.rows.forEach((x,i)=>{const y=S2.rows[i], z=SB.rows[i];
-   h+=`<tr><td class="num">${x.n}</td><td class="num" style="color:var(--mut)">${x.m||"–"}</td><td class="num">${x.par}</td><td class="num tracerTxt">${x.vor}</td>
-    <td class="num" style="font-weight:700">${x.s||"–"}</td><td class="num">${x.s?x.p:"–"}</td><td class="num" style="color:${x.pen?"var(--bad)":"var(--mut)"}">${x.pen||"–"}</td>
-    <td class="num" style="font-weight:800">${x.pts==null?"–":x.pts}</td>
-    <td class="num b2s" style="font-weight:700">${y.s||"–"}</td><td class="num">${y.s?y.p:"–"}</td><td class="num" style="color:${y.pen?"var(--bad)":"var(--mut)"}">${y.pen||"–"}</td>
-    <td class="num" style="font-weight:800">${y.pts==null?"–":y.pts}</td>
-    <td class="num tracerTxt b2s" style="font-weight:800">${z.pts==null?"–":z.pts}</td></tr>`;});
-  h+=`<tr><td style="font-weight:800">Σ</td><td></td><td class="num" style="font-weight:800">${S.par}</td><td class="num" style="font-weight:800">${S.ch}</td>
-   <td class="num" style="font-weight:800">${S.schlaege}</td><td class="num" style="font-weight:800">${S.putts}</td><td class="num" style="font-weight:800">${S.strafen}</td>
-   <td class="num" style="font-weight:800">${S.punkte}</td>
-   <td class="num b2s" style="font-weight:800">${S2.schlaege}</td><td class="num" style="font-weight:800">${S2.putts}</td><td class="num" style="font-weight:800">${S2.strafen}</td>
-   <td class="num" style="font-weight:800">${S2.punkte}</td>
-   <td class="num tracerTxt b2s" style="font-weight:800">${SB.punkte}</td></tr></table></div></div>`;
-  const best=Math.max(S.punkte,S2.punkte), gap=SB.punkte-best;
-  h+=`<div class="card"><div class="lbl">Ballvergleich</div><div class="bd">
-   <div><span class="lbl">Ball 1</span><div class="bv">${S.punkte}</div></div>
-   <div><span class="lbl">Ball 2</span><div class="bv">${S2.punkte}</div></div>
-   <div><span class="lbl">Bester Ball</span><div class="bv tracerTxt">${SB.punkte}</div></div></div>
-   <div class="rdnote">Nimmt man Loch für Loch den besseren der zwei Bälle, kommen <b>${SB.punkte} Punkte</b> bei <b>${SB.schlaege} Schlägen</b> heraus — ${gap>0?"<b>"+gap+" Punkt"+(gap==1?"":"e")+" mehr</b> als dein besserer Einzelball ("+best+")":"gleich viel wie dein besserer Einzelball"}. Dieser Abstand ist deine Streuung: er verschwindet nicht durch längere Schläge, sondern durch Wiederholbarkeit. Für Punkte, Handicap und Score Differential zählt allein Ball 1.</div></div>`;
- }else{
-  h+=`<div class="card"><div class="lbl" style="margin-bottom:2px">Loch für Loch</div><div class="scroll"><table class="tbl cmp">
-   <tr><th>Loch</th><th>m</th><th>Par</th><th>Idx</th><th>Vorg</th><th>Schl</th><th>bis Grün</th><th>Putts</th><th>Straf</th><th>Pkt</th></tr>`;
-  S.rows.forEach(x=>{h+=`<tr><td class="num">${x.n}</td><td class="num" style="color:var(--mut)">${x.m||"–"}</td><td class="num">${x.par}</td>
-   <td class="num" style="color:var(--mut)">${x.idx}</td><td class="num tracerTxt">${x.vor}</td><td class="num" style="font-weight:700">${x.s||"–"}</td>
-   <td class="num">${x.s?x.bis:"–"}</td><td class="num">${x.s?x.p:"–"}</td><td class="num" style="color:${x.pen?"var(--bad)":"var(--mut)"}">${x.pen||"–"}</td>
-   <td class="num" style="font-weight:800">${x.pts==null?"–":x.pts}</td></tr>`;});
-  h+=`<tr><td style="font-weight:800">Σ</td><td></td><td class="num" style="font-weight:800">${S.par}</td><td></td><td class="num" style="font-weight:800">${S.ch}</td>
-   <td class="num" style="font-weight:800">${S.schlaege}</td><td class="num" style="font-weight:800">${S.bis}</td><td class="num" style="font-weight:800">${S.putts}</td>
-   <td class="num" style="font-weight:800">${S.strafen}</td><td class="num tracerTxt" style="font-weight:800">${S.punkte}</td></tr></table></div></div>`;
- }
+ h+=`<div class="card"><div class="lbl" style="margin-bottom:2px">Loch für Loch</div><div class="scroll"><table class="tbl cmp">
+  <tr><th>Loch</th><th>m</th><th>Par</th><th>Idx</th><th>Vorg</th><th>Schl</th><th>bis Grün</th><th>Putts</th><th>Straf</th><th>Pkt</th></tr>`;
+ S.rows.forEach(x=>{h+=`<tr><td class="num">${x.n}</td><td class="num" style="color:var(--mut)">${x.m||"–"}</td><td class="num">${x.par}</td>
+  <td class="num" style="color:var(--mut)">${x.idx}</td><td class="num tracerTxt">${x.vor}</td><td class="num" style="font-weight:700">${x.s||"–"}</td>
+  <td class="num">${x.s?x.bis:"–"}</td><td class="num">${x.s?x.p:"–"}</td><td class="num" style="color:${x.pen?"var(--bad)":"var(--mut)"}">${x.pen||"–"}</td>
+  <td class="num" style="font-weight:800">${x.pts==null?"–":x.pts}</td></tr>`;});
+ h+=`<tr><td style="font-weight:800">Σ</td><td></td><td class="num" style="font-weight:800">${S.par}</td><td></td><td class="num" style="font-weight:800">${S.ch}</td>
+  <td class="num" style="font-weight:800">${S.schlaege}</td><td class="num" style="font-weight:800">${S.bis}</td><td class="num" style="font-weight:800">${S.putts}</td>
+  <td class="num" style="font-weight:800">${S.strafen}</td><td class="num tracerTxt" style="font-weight:800">${S.punkte}</td></tr></table></div></div>`;
 
- (nb==2?[["Ball 1",S],["Ball 2",S2]]:[["",S]]).forEach(pair=>{
-  const lab=pair[0], X=pair[1];
-  if(Object.keys(X.byPar).length<2)return;
-  h+=`<div class="card"><div class="lbl" style="margin-bottom:2px">Nach Par${lab?" · "+lab:""}</div><table class="tbl">
+ if(Object.keys(S.byPar).length>1){
+  h+=`<div class="card"><div class="lbl" style="margin-bottom:2px">Nach Par</div><table class="tbl">
    <tr><th>Par</th><th>Löcher</th><th>Schläge</th><th>zu Par</th><th>Ø bis Grün</th><th>Ø Punkte</th></tr>`;
-  [3,4,5].forEach(p=>{const b=X.byPar[p];if(!b)return;
+  [3,4,5].forEach(p=>{const b=S.byPar[p];if(!b)return;
    h+=`<tr><td>Par ${p}</td><td class="num">${b.n}</td><td class="num">${b.s}</td><td class="num">${b.s-b.par>=0?"+":""}${b.s-b.par}</td>
     <td class="num">${f1(b.bis/b.n)}</td><td class="num" style="font-weight:800">${f1(b.pts/b.n)}</td></tr>`;});
   h+=`</table></div>`;
- });
+ }
 
- (nb==2?[["Ball 1",S],["Ball 2",S2]]:[["",S]]).forEach(pair=>{
-  const lab=pair[0], X=pair[1];
-  h+=`<div class="card"><div class="lbl">Was die Runde gekostet hat${lab?" · "+lab:""}</div><div class="bd">
-   <div><span class="lbl">Strafschläge</span><div class="bv" style="color:${X.strafen?"var(--bad)":"inherit"}">${X.strafen}</div></div>
-   <div><span class="lbl">Putts über 2</span><div class="bv" style="color:${X.extraPutts?"var(--warn)":"inherit"}">${X.extraPutts}</div></div>
-   <div><span class="lbl">ohne beides</span><div class="bv tracerTxt">${X.oPunkte}</div></div></div>
-   <div class="rdnote">Ohne Strafschläge und ohne die Putts über zwei wären es <b>${X.oSchlaege} Schläge</b> und <b>${X.oPunkte} Punkte</b> gewesen — das ist die Obergrenze des Spiels dieser Runde. Beide Posten sind eng umrissen und trainierbar.</div></div>`;
- });
+ h+=`<div class="card"><div class="lbl">Was die Runde gekostet hat</div><div class="bd">
+  <div><span class="lbl">Strafschläge</span><div class="bv" style="color:${S.strafen?"var(--bad)":"inherit"}">${S.strafen}</div></div>
+  <div><span class="lbl">Putts über 2</span><div class="bv" style="color:${S.extraPutts?"var(--warn)":"inherit"}">${S.extraPutts}</div></div>
+  <div><span class="lbl">ohne beides</span><div class="bv tracerTxt">${S.oPunkte}</div></div></div>
+  <div class="rdnote">Ohne Strafschläge und ohne die Putts über zwei wären es <b>${S.oSchlaege} Schläge</b> und <b>${S.oPunkte} Punkte</b> gewesen — das ist die Obergrenze des Spiels dieser Runde. Beide Posten sind eng umrissen und trainierbar.</div></div>`;
 
  if(S.sd){
   h+=`<div class="card"><div class="lbl">Score Differential (WHS)</div><div class="bd">`;
   if(S.sd.sd9!=null)h+=`<div><span class="lbl">SD 9 gespielt</span><div class="bv">${f1(S.sd.sd9)}</div></div>
    <div><span class="lbl">SD 9 berechnet</span><div class="bv">${f1((S.sd.hi*1.04+2.4)/2)}</div></div>`;
   h+=`<div><span class="lbl">SD 18</span><div class="bv tracerTxt">${f1(S.sd.sd18)}</div></div></div>
-   <div class="rdnote">Bei Index ${f1(S.sd.hi)} und Slope ${S.sd.slope}. Das Course Rating fällt aus der Rechnung heraus; jeder Punkt über ${S.zumHcp} ist ${f1(113/S.sd.slope)} Differentialpunkte wert. Gilt nur, wenn die Runde vorher als EDS angemeldet war.${nb==2?" Gerechnet mit Ball 1 — nur der erste Ball ist zählbar.":""}</div></div>`;
+   <div class="rdnote">Bei Index ${f1(S.sd.hi)} und Slope ${S.sd.slope}. Das Course Rating fällt aus der Rechnung heraus; jeder Punkt über ${S.zumHcp} ist ${f1(113/S.sd.slope)} Differentialpunkte wert. Gilt nur, wenn die Runde vorher als EDS angemeldet war.</div></div>`;
  }else{
   h+=`<div class="card"><div class="lbl">Score Differential</div><div class="rdnote">Für die WHS-Rechnung fehlen ${!rdHi()?"dein Handicap Index":""}${(!rdHi()&&!(r.slope||(courseById(r.courseId)||{}).slope))?" und ":""}${!(r.slope||(courseById(r.courseId)||{}).slope)?"der Slope des Platzes":""}. Index unten eintragen, Slope beim Platz.</div>
    <div class="twocol" style="margin-top:10px"><div><div class="inlbl">Handicap Index</div><input type="number" step="0.1" class="in" id="rdHiIn" style="padding:11px" value="${rdHi()||""}"></div><div style="display:flex;align-items:flex-end"><button class="go" id="rdHiSave" style="width:100%;padding:13px">Speichern</button></div></div></div>`;
@@ -1598,9 +1540,9 @@ function renderRdDetail(){
 function renderCourseEdit(){
  const c=rdEditId?courseById(rdEditId):null;
  $("#rdEditTitle").textContent=c?"Platz bearbeiten":"Platz anlegen";
- if(c){$("#ceName").value=c.name;$("#ceTee").value=c.tee||"";$("#ceSlope").value=c.slope||"";
+ if(c){$("#ceName").value=c.name;$("#ceTee").value=c.tee||"";$("#ceSlope").value=c.slope||"";$("#ceCr").value=(c.cr!=null?c.cr:"");
   rdEditHn=c.holes.length; rdEditHoles=JSON.parse(JSON.stringify(c.holes));}
- else if(!rdEditHoles.length){$("#ceName").value="";$("#ceTee").value="";$("#ceSlope").value="";
+ else if(!rdEditHoles.length){$("#ceName").value="";$("#ceTee").value="";$("#ceSlope").value="";$("#ceCr").value="";
   rdEditHn=9; rdEditHoles=ceBlank(9);}
  $$("#rdEdit .seg[data-hn]").forEach(s=>s.classList.toggle("on",+s.dataset.hn==rdEditHn));
  $("#ceDelete").style.display=(c&&!c.seed)?"":"none";
@@ -1623,18 +1565,109 @@ function ceValidate(){
  return null;
 }
 
+
+/* ===================== Schlaegerweiten / Bag ===================== */
+/* Feste Referenzwerte. BEWUSST nicht aus DATA berechnet: der Datensatz mischt
+   R10-Radar und Anlagenanzeige, eine Live-Rechnung wuerde die Skalen vermengen. */
+const BAG=[
+ {k:"Driver Qi",     med:204.5,p25:191.5,n:16,src:"R10"},
+ {k:"Driver Srixon", med:187.3,p25:169.0,n:36,src:"R10"},
+ {k:"5er",           med:167.1,p25:158.2,n:36,src:"R10",rec:1},
+ {k:"4er",           med:164.0,p25:145.8,n:31,src:"R10"},
+ {k:"6er",           med:154.4,p25:138.2,n:48,src:"R10"},
+ {k:"7er",           med:149.5,p25:138.5,n:56,src:"R10",rec:1},
+ {k:"8er",           med:144.7,p25:137.7,n:40,src:"R10"},
+ {k:"9er",           med:127.7,p25:119.8,n:72,src:"R10",rec:1},
+ {k:"PW",            med:112.4,p25:104.9,n:53,src:"R10",rec:1}
+];
+const WEDGE=[
+ {k:"PW", voll:[106.5,101.8], u1030:[85.0,82.2], u9:[64.5,62.0]},
+ {k:"52°",voll:[ 79.0, 75.0], u1030:[67.0,64.2], u9:null},
+ {k:"56°",voll:[ 72.5, 70.8], u1030:[53.5,50.2], u9:null}
+];
+/* Leiter: alles auf einer Liste, Skala je Eintrag mitgefuehrt */
+function bagLadder(){
+ const L=[];
+ BAG.forEach(b=>L.push({name:b.k,sw:"voll",med:b.med,p25:b.p25,src:"R10"}));
+ WEDGE.forEach(w=>{
+  if(w.k!="PW"){ if(w.voll)L.push({name:w.k,sw:"voll",med:w.voll[0],p25:w.voll[1],src:"Anlage"}); }
+  if(w.u1030) L.push({name:w.k,sw:"10:30",med:w.u1030[0],p25:w.u1030[1],src:"Anlage"});
+  if(w.u9)    L.push({name:w.k,sw:"9 Uhr",med:w.u9[0],  p25:w.u9[1],  src:"Anlage"});
+ });
+ return L.sort((a,b)=>b.med-a.med);
+}
+const PWGAP={lo:85.0,hi:106.5}; /* PW 10:30 bis PW voll, beides Anlage 20.08. */
+let bagM="med";
+function renderBag(){
+ const L=bagLadder();
+ /* Leiter */
+ let h=`<tr><th>Schläger</th><th>Schwung</th><th>Median</th><th>p25</th><th>Skala</th></tr>`;
+ L.forEach((x,i)=>{
+  const prev=i?L[i-1]:null, gap=prev?prev.med-x.med:0;
+  if(prev&&prev.src!=x.src)
+   h+=`<tr><td colspan="5" style="color:var(--sky);font-size:11px;padding:5px 2px;line-height:1.45">`
+     +`Skalenwechsel · ab hier Anlagenanzeige<br><span style="color:var(--warn)">Echte Lücke ${PWGAP.lo.toFixed(1)}–${PWGAP.hi.toFixed(1)} m = ${(PWGAP.hi-PWGAP.lo).toFixed(1)} m, auf einer Skala gemessen</span></td></tr>`;
+  else if(prev&&gap>=15) h+=`<tr><td colspan="5" style="color:var(--warn);font-size:11px;padding:4px 2px">▲ Lücke ${gap.toFixed(1)} m</td></tr>`;
+  h+=`<tr><td style="font-weight:700">${x.name}</td><td style="color:var(--mut)">${x.sw}</td>
+   <td class="num" style="font-weight:700">${x.med.toFixed(1)}</td><td class="num tracerTxt">${x.p25.toFixed(1)}</td>
+   <td style="color:var(--mut);font-size:10.5px">${x.src}</td></tr>`;});
+ $("#bagLadder").innerHTML=h;
+ /* Eisen */
+ h=`<tr><th>Schläger</th><th>Median</th><th>p25</th><th>n</th></tr>`;
+ BAG.forEach(b=>{h+=`<tr><td style="font-weight:700;${b.rec?"color:var(--tracer)":""}">${b.k}${b.rec?" ●":""}</td>
+  <td class="num" style="font-weight:700">${b.med.toFixed(1)}</td><td class="num tracerTxt">${b.p25.toFixed(1)}</td>
+  <td class="num" style="color:var(--mut)">${b.n}</td></tr>`;});
+ $("#bagIrons").innerHTML=h;
+ /* Wedge-Matrix */
+ h=`<tr><th></th><th>voll</th><th>10:30</th><th>9 Uhr</th></tr>`;
+ WEDGE.forEach(w=>{const c=v=>v?`<b>${v[0].toFixed(1)}</b><br><span style="color:var(--tracer);font-size:10.5px">${v[1].toFixed(1)}</span>`:`<span style="color:var(--mut)">–</span>`;
+  h+=`<tr><td style="font-weight:700">${w.k}</td><td class="num">${c(w.voll)}</td><td class="num">${c(w.u1030)}</td><td class="num">${c(w.u9)}</td></tr>`;});
+ h+=`<tr><td colspan="4" style="color:var(--mut);font-size:10.5px;padding-top:6px">fett = Median, grün = p25, beides Carry in Metern</td></tr>`;
+ $("#bagWedge").innerHTML=h;
+ bagSuggest();
+}
+function bagSuggest(){
+ const t=parseFloat($("#bagD").value), out=$("#bagOut");
+ if(isNaN(t)||t<=0){out.innerHTML="Distanz eingeben";out.style.color="var(--mut)";return;}
+ const L=bagLadder();
+ if(bagM=="carry"){
+  const ok=L.filter(x=>x.p25>=t).sort((a,b)=>a.med-b.med);
+  if(!ok.length){out.innerHTML=`<b>Kein Schläger trägt ${t} m sicher.</b><br><span style="color:var(--mut)">Längster p25: ${L[0].name} mit ${L[0].p25.toFixed(1)} m. Layup.</span>`;
+   out.style.color="var(--bad)";return;}
+  const a=ok[0], b=ok[1];
+  out.innerHTML=`<b style="font-size:18px">${a.name} ${a.sw}</b> — p25 ${a.p25.toFixed(1)} m, trägt`
+   +`<br><span style="color:var(--mut)">Median ${a.med.toFixed(1)} m, also ${(a.med-t).toFixed(1)} m Reserve nach hinten</span>`
+   +(b?`<br><span style="color:var(--mut)">Sicherer noch: ${b.name} ${b.sw}, p25 ${b.p25.toFixed(1)}</span>`:"");
+  out.style.color="var(--tracer)";return;}
+ const s=L.slice().sort((a,b)=>Math.abs(a.med-t)-Math.abs(b.med-t));
+ const a=s[0], d=a.med-t;
+ const up=L.filter(x=>x.med>t).slice(-1)[0], dn=L.filter(x=>x.med<=t)[0];
+ let extra="";
+ if(t>PWGAP.lo&&t<PWGAP.hi)
+  extra=`<br><span style="color:var(--warn)">Du liegst in der Lücke ${PWGAP.lo}–${PWGAP.hi} m. Kein voller Schläger passt — 11-Uhr-PW ist noch nicht vermessen.</span>`;
+ else if(up&&dn&&up.src==dn.src&&(up.med-dn.med)>=15&&t>dn.med&&t<up.med)
+  extra=`<br><span style="color:var(--warn)">Du liegst in der Lücke ${dn.med.toFixed(0)}–${up.med.toFixed(0)} m.</span>`;
+ out.innerHTML=`<b style="font-size:18px">${a.name} ${a.sw}</b> — Median ${a.med.toFixed(1)} m`
+  +`<br><span style="color:var(--mut)">${d>=0?"+":""}${d.toFixed(1)} m gegenüber dem Ziel · p25 ${a.p25.toFixed(1)}</span>`+extra;
+ out.style.color="var(--tracer)";
+}
+$("#bagD").oninput=bagSuggest;
+$$("#bagMode .seg").forEach(el=>el.onclick=()=>{bagM=el.dataset.m;
+ $$("#bagMode .seg").forEach(o=>o.classList.toggle("on",o==el));bagSuggest();});
+$("#bagBack").onclick=()=>rdShow(rdCur?"play":"home");
+$("#rdToBag").onclick=()=>rdShow("bag");
+$("#rdHomeBag").onclick=()=>rdShow("bag");
+
 /* --- Events --- */
+$$("#rdPartSeg .seg").forEach(el=>el.onclick=()=>{rdPart=el.dataset.part;renderRdHome();});
+$("#rdHiHome").onchange=$("#rdHiHome").oninput=()=>{const v=parseFloat($("#rdHiHome").value);
+ if(!isNaN(v)&&v>=-10&&v<=54){rdSetHi(v);const c=courseById(rdCourseSel);$("#rdCh").value=defCh(c,rdPart);
+  const H=partHoles(c,rdPart),par=H.reduce((a,h)=>a+h.par,0);
+  $("#rdChHint").innerHTML=`${H.length} Löcher · Par ${par}${c.slope?" · Slope "+c.slope:""}${c.cr!=null?" · CR "+c.cr:""} · Spiel zum Handicap = <b>${H.length<=9?18:36} Punkte</b>`;}};
 $("#rdStart").onclick=rdStartRound;
-$$("#rdNewBallSeg .seg").forEach(e=>e.onclick=()=>{rdNewBalls=+e.dataset.nb;
- $$("#rdNewBallSeg .seg").forEach(t=>t.classList.toggle("on",t==e));});
-$$("#rdBallMode .seg").forEach(e=>e.onclick=()=>{ if(!rdCur)return;
- const nb=+e.dataset.nb;
- if(nb==1 && rdCur.holes.some(x=>+x.s2>0) && !confirm("Auf einen Ball zurückstellen? Die Werte von Ball 2 bleiben gespeichert, werden aber nicht mehr angezeigt und nicht mitgewertet."))return;
- rdCur.balls=nb; rdCurSave(); renderRdPlay();
- toast(nb==2?"Zwei Bälle":"Ein Ball"); });
 $$("#rdPlay .stpb").forEach(b=>b.onclick=()=>rdStep(b.closest(".stp").dataset.f,+b.dataset.d));
 $("#rdPrev").onclick=()=>{if(rdHole>0){rdHole--;renderRdPlay();}};
-$("#rdNext").onclick=()=>{const c=courseById(rdCur.courseId);if(rdHole<c.holes.length-1){rdHole++;renderRdPlay();}else{rdFinishRound();}};
+$("#rdNext").onclick=()=>{const n=rdHolesOf(rdCur).length;if(rdHole<n-1){rdHole++;renderRdPlay();}else{rdFinishRound();}};
 $("#rdToTable").onclick=()=>rdShow("table");
 $("#rdToPlay").onclick=()=>rdShow("play");
 $("#rdTblBack").onclick=()=>{ if(ROUNDS.some(x=>x.id==rdCur.id)&&rdCur.holes.some(x=>x.s)){rdDetailId=rdCur.id;rdShow("detail");} else rdShow("play"); };
@@ -1642,7 +1675,7 @@ $("#rdFinish").onclick=()=>rdFinishRound();
 $("#rdTblFinish").onclick=()=>rdFinishRound();
 $("#rdAbort").onclick=()=>{if(confirm("Runde verwerfen?")){ROUNDS=ROUNDS.filter(x=>x.id!=rdCur.id);saveR();rdCur=null;rdShow("home");toast("Verworfen");}};
 function rdFinishRound(){ if(!rdCur)return;
- if(!rdCur.holes.some(x=>(+x.s||0)||(+x.s2||0))){toast("Noch keine Schläge erfasst");return;}
+ if(!rdCur.holes.some(x=>x.s)){toast("Noch keine Schläge erfasst");return;}
  rdCurSave(); rdDetailId=rdCur.id; rdCur=null; rdShow("detail"); toast("Runde gespeichert"); }
 $("#rdNewCourse").onclick=()=>{rdEditId=null;rdEditHoles=[];rdShow("edit");};
 $$("#rdEdit .seg[data-hn]").forEach(s=>s.onclick=()=>{rdEditHn=+s.dataset.hn;
@@ -1651,9 +1684,9 @@ $$("#rdEdit .seg[data-hn]").forEach(s=>s.onclick=()=>{rdEditHn=+s.dataset.hn;
  renderCourseEdit();});
 $("#ceCancel").onclick=()=>rdShow("home");
 $("#ceSave").onclick=()=>{const err=ceValidate(); if(err){toast(err);return;}
- const slope=parseInt($("#ceSlope").value,10);
+ const slope=parseInt($("#ceSlope").value,10), cr=parseFloat($("#ceCr").value);
  const obj={id:rdEditId||("c"+rid()),name:$("#ceName").value.trim(),tee:$("#ceTee").value.trim(),
-  slope:isNaN(slope)?null:slope,holes:JSON.parse(JSON.stringify(rdEditHoles))};
+  slope:isNaN(slope)?null:slope,cr:isNaN(cr)?null:cr,holes:JSON.parse(JSON.stringify(rdEditHoles))};
  const i=COURSES.findIndex(c=>c.id==rdEditId);
  if(i>=0){obj.seed=COURSES[i].seed;COURSES[i]=obj;} else COURSES.push(obj);
  saveC(); rdCourseSel=obj.id; rdShow("home"); toast("Platz gespeichert");};
