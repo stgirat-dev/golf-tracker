@@ -205,8 +205,8 @@ canvas{width:100%;height:230px;display:block}
    <span>Tracer<b>.</b></span>
   </div>
   <div style="display:flex;gap:7px">
-   <button class="iconbtn" id="bExport">Export</button>
-   <label class="iconbtn" style="margin:0">Import<input type="file" id="bImport" accept=".json,.csv,text/csv,application/json" hidden></label>
+   <button class="iconbtn" id="bExport">Schläge</button>
+   <label class="iconbtn" style="margin:0">Import Schläge<input type="file" id="bImport" accept=".json,.csv,text/csv,application/json" hidden></label>
   </div>
  </div>
 
@@ -263,7 +263,7 @@ canvas{width:100%;height:230px;display:block}
   <div class="card">
    <div class="h3">Session-Plan</div>
    <div class="statusrow" id="planSeg" style="margin-top:10px">
-    <div class="seg" data-p="s10">Nächste</div>
+    <div class="seg" data-p="s11">Nächste</div>
     <div class="seg" data-p="std">Standard</div>
     <div class="seg" data-p="off">Aus</div>
    </div>
@@ -432,8 +432,8 @@ canvas{width:100%;height:230px;display:block}
    <div class="card">
     <div class="lbl" style="margin-bottom:9px">Runden sichern</div>
     <div style="display:flex;gap:8px">
-     <button class="go" id="rdExport" style="flex:1;padding:11px">Export</button>
-     <label class="go" style="flex:1;padding:11px;text-align:center;margin:0">Import<input type="file" id="rdImport" accept=".json,application/json" hidden></label>
+     <button class="go" id="rdExport" style="flex:1;padding:11px">Runden exportieren</button>
+     <label class="go" style="flex:1;padding:11px;text-align:center;margin:0">Runden importieren<input type="file" id="rdImport" accept=".json,application/json" hidden></label>
     </div>
    </div>
   </div>
@@ -875,6 +875,17 @@ let lastField=null;
 function refocus(){if(lastField)setTimeout(()=>{try{lastField.focus();}catch(e){}},0);}
 
 const PLANS={
+ s11:{name:"Griffänderung prüfen · Loft gegen Einspielen",
+  intro:"Diese Session hat genau eine Aufgabe: herausfinden, ob der Sprung vom 29.08. echt ist und woher er kommt.\n\nAm 29.08. sind 6er und 7er auf 93 % und 91 % «gerade» gesprungen (vorher 43 % und 52 %), 9er und PW blieben unverändert. Das Problem: du hast an dem Tag von kurz nach lang geschlagen — Schlägerlänge und Einspielen sind nicht trennbar. Deshalb läuft diese Session GENAU UMGEKEHRT, von lang nach kurz. Ein Aufwärmeffekt arbeitet damit gegen den Lofteffekt statt mit ihm.\n\nDIE ENTSCHEIDUNG fällt an zwei Blöcken: Block 1 (6er, eiskalt) und Block 8 (9er, ganz warm). Ist es die Schlägerlänge, steht der 6er sofort über 90 % und der 9er bleibt am Ende bei rund 50 %. War es das Einspielen, ist es umgekehrt. Beides zugleich geht nicht.\n\nDER 8er ist der Testschläger: 35° liegt genau zwischen dem Bereich, der gesprungen ist, und dem, der sich nicht bewegt hat. Er hat mit 41,7 % die schlechteste Geradequote deines Satzes und wurde seit dem 18.08. nicht mehr geschlagen.\n\nPFLICHT: R10 an — beim 6er hattest du am 29.08. null Ballgeschwindigkeiten, und genau der Smash-Faktor würde deine Kompressionserklärung belegen. Richtung bei JEDEM Schlag eintragen, am 29.08. fehlte sie bei 17 von 76. Und Griff und Armhaltung unverändert lassen, sonst misst du zwei Änderungen gleichzeitig.\n\n80 Bälle, überwiegend Mittel- und Langeisen — das ist eine schwere Session. Wenn der Anker in Block 4 einbricht, lieber Block 5 kürzen als die Wiederholungsblöcke.",
+  blocks:[
+   {set:"takomo_201",club:"6er",n:12,tag:"KALT, ganz zuerst · die Hauptmessung. 93 % gerade am 29.08. — hält das ohne Einspielen?"},
+   {set:"takomo_201",club:"7er",n:10,tag:"31° · 91 % gerade am 29.08., Bestätigung"},
+   {set:"takomo_201",club:"8er",n:10,tag:"35° · DER TESTSCHLÄGER. Vorher 41,7 % gerade, seit 18.08. nicht geschlagen"},
+   {set:"takomo_201",club:"9er",n:8,tag:"Anker · 40°, hat sich am 29.08. NICHT bewegt. Misst zugleich den Abbau"},
+   {set:"takomo_201",club:"PW",n:10,tag:"46° · Gegenprobe am kurzen Ende, dort erwarte ich nichts"},
+   {set:"takomo_201",club:"8er",n:8,tag:"35° · Wiederholung spät, gegen den frühen 8er-Block"},
+   {set:"takomo_201",club:"6er",n:10,tag:"27° · Wiederholung spät, gegen den kalten Block 1"},
+   {set:"takomo_201",club:"9er",n:12,tag:"ZULETZT und warm · bleibt er bei 50 %, ist es die Schlägerlänge"}]},
  s10:{name:"Lange Session · PW-Stufen, Wedges, Radar-Kalibrierung",
   intro:"Drei Messziele in einer Session. Ablauf strikt einhalten, die Reihenfolge ist nicht beliebig.\n\n1) EINSCHLAGEN: alle zehn auf eine feste Zieltafel. Danach den MEDIAN der Seitenablage anschauen, nicht den letzten Ball, und den Radar entsprechend korrigieren.\n\n2) DIE DREI PW-BLÖCKE laufen direkt hintereinander. Gemessen wird nicht die Distanz, sondern das Verhältnis voll : 10:30 : 9 Uhr — jede Pause dazwischen geht als Drift in den Quotienten.\n\n3) KALIBRIERBLOCK am Schluss: 25 Schläge 9er auf dieselbe Tafel. Vor jedem Ablesen die eigene Seitenablage schätzen und ins Notizfeld tippen, dann erst aufs Display schauen. Reihenfolge zwingend, sonst ist die Kovarianz aufgebläht und die Varianzzerlegung wertlos.\n\nAnker A, B und C immer mit dem 9er. Rund 53 Minuten — ab Minute 50 fällt dein Smash erfahrungsgemäss ab, die Anker messen das mit.",
   blocks:[
@@ -964,7 +975,7 @@ const PLANS={
    {set:"srixon_i701",club:"7er",n:10,tag:"Anker Ende"}]}};
 let planId=(function(){try{let v=localStorage.getItem(KEY+"_plan")||"off";
  /* s3 ist ausgelaufen: wer es aktiv hatte, bekommt das Nachfolgeprogramm */
- if(v=="s3"||v=="s4"||v=="s5"||v=="s6"||v=="s7"||v=="s8"||v=="s9"){v="s10";localStorage.setItem(KEY+"_plan",v);localStorage.removeItem(KEY+"_planT");}
+ if(v=="s3"||v=="s4"||v=="s5"||v=="s6"||v=="s7"||v=="s8"||v=="s9"||v=="s10"){v="s11";localStorage.setItem(KEY+"_plan",v);localStorage.removeItem(KEY+"_planT");}
  return v;}catch(e){return "off";}})();
 let planT=(function(){try{return +localStorage.getItem(KEY+"_planT")||0;}catch(e){return 0;}})();
 /* Der Zeitstempel steckt in der ID neu erfasster Schlaege ("s"+Date.now()+...).
@@ -1304,9 +1315,17 @@ function rdJson(k,fb){try{const s=localStorage.getItem(k);if(!s)return fb;const 
 function rdPut(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){toast("Speichern fehlgeschlagen");}}
 let COURSES=rdJson(CKEY,null), ROUNDS=rdJson(RKEY,null);
 if(!COURSES){COURSES=JSON.parse(JSON.stringify(SEEDCOURSES));rdPut(CKEY,COURSES);}
-else{/* Seed-Merge: neue eingebaute Plaetze nachtragen, vorhandene nie ueberschreiben */
- let add=0; SEEDCOURSES.forEach(sc=>{if(!COURSES.some(c=>c.id==sc.id)){COURSES.push(JSON.parse(JSON.stringify(sc)));add++;}});
- if(add)rdPut(CKEY,COURSES);}
+else{/* Seed-Merge: neue eingebaute Plaetze nachtragen; bei vorhandenen nur FEHLENDE
+   Felder ergaenzen, nie einen vom Nutzer gesetzten Wert ueberschreiben. */
+ let ch=0;
+ SEEDCOURSES.forEach(sc=>{
+  const cur=COURSES.find(c=>c.id==sc.id);
+  if(!cur){COURSES.push(JSON.parse(JSON.stringify(sc)));ch++;return;}
+  ["cr","chFix","slope","tee","name"].forEach(k=>{
+   if(sc[k]!==undefined && cur[k]===undefined){cur[k]=JSON.parse(JSON.stringify(sc[k]));ch++;}});
+  if(cur.seed===undefined && sc.seed){cur.seed=true;ch++;}
+ });
+ if(ch)rdPut(CKEY,COURSES);}
 if(!ROUNDS){ROUNDS=JSON.parse(JSON.stringify(SEEDROUNDS));rdPut(RKEY,ROUNDS);}
 function saveC(){rdPut(CKEY,COURSES);} function saveR(){rdPut(RKEY,ROUNDS);}
 function courseById(id){return COURSES.find(c=>c.id==id)||null;}
@@ -1388,6 +1407,12 @@ function rdSummary(r,b){
  S.ball=b;
  return S;
 }
+function chHintTxt(){
+ if(chSrc=="fix")return `<span style="color:var(--sky)">Vorgabe aus einer gespielten Runde übernommen.</span> Wenn die Tafel am Abschlag etwas anderes sagt: überschreiben.`;
+ if(chSrc=="formel")return `<span style="color:var(--warn)">Vorgabe nur aus Index und Slope gerechnet — ohne Course Rating, also auf ±1 unsicher.</span> Zahl von der Vorgabentabelle am Abschlag hat Vorrang.`;
+ if(chSrc=="formel_cr")return `Vorgabe aus Index, Slope und CR gerechnet. Tafel am Abschlag hat Vorrang.`;
+ return "";
+}
 function rdHi(){try{return +localStorage.getItem(KEY+"_hi")||0;}catch(e){return 0;}}
 function rdSetHi(v){try{localStorage.setItem(KEY+"_hi",String(v));}catch(e){}}
 
@@ -1405,10 +1430,12 @@ function rdShow(m){rdMode=m;
 function partHoles(c,part){ if(!c)return [];
  if(c.holes.length<=9||part=="18")return c.holes;
  return part=="in"?c.holes.slice(9):c.holes.slice(0,9); }
-function defCh(c,part){ if(!c)return "";
+let chSrc="";
+function defCh(c,part){ chSrc=""; if(!c)return "";
  const H=partHoles(c,part), n=H.length, par=H.reduce((a,h)=>a+h.par,0), half=n<=9;
- if(c.chFix&&c.chFix[n]!=null)return c.chFix[n];
- const hi=rdHi(); if(!hi||!c.slope)return "";
+ if(c.chFix&&c.chFix[n]!=null){chSrc="fix";return c.chFix[n];}
+ const hi=rdHi(); if(!hi||!c.slope){chSrc="fehlt";return "";}
+ chSrc=(c.cr!=null&&!isNaN(c.cr))?"formel_cr":"formel";
  let v=(half?hi/2:hi)*c.slope/113;
  if(c.cr!=null&&!isNaN(c.cr)) v+=(half?c.cr/2:c.cr)-par;
  return Math.round(v); }
@@ -1426,7 +1453,7 @@ function renderRdHome(){
  $("#rdCh").value=defCh(c,rdPart);
  const H=partHoles(c,rdPart), par=H.reduce((a,h)=>a+h.par,0);
  $("#rdChHint").innerHTML=c?`${H.length} Löcher · Par ${par}${c.slope?" · Slope "+c.slope:""}${c.cr!=null?" · CR "+c.cr:""} · Spiel zum Handicap = <b>${H.length<=9?18:36} Punkte</b>`
-   +(rdHi()?"":`<br><span style="color:var(--warn)">Handicap Index eintragen, dann schlage ich die Vorgabe vor.</span>`):"";
+   +(rdHi()?`<br>${chHintTxt()}`:`<br><span style="color:var(--warn)">Handicap Index eintragen, dann schlage ich die Vorgabe vor.</span>`):"";
  $$("#rdNewBallSeg .seg").forEach(e=>e.classList.toggle("on",+e.dataset.nb==rdNewBalls));
  /* Rundenliste */
  const L=ROUNDS.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.id>a.id?1:-1));
