@@ -608,7 +608,7 @@ canvas{width:100%;height:230px;display:block}
 <div class="toast" id="toast"></div>
 
 <script>
-const APPVER="v27";
+const APPVER="v28";
 const KEY="golfTrackerV1";
 const SEEDVER="2026-07-27";
 const CLUBS=["Driver","3er","4er","5er","6er","7er","8er","9er","PW","52°","56°","58°","60°"];
@@ -1314,8 +1314,9 @@ $("#bReset").onclick=()=>{if(confirm("Alle lokalen Daten durch die eingebauten "
 const RKEY=KEY+"_rounds", CKEY=KEY+"_courses";
 
 const SEEDCOURSES=[{
- id:"augwil_gelb", name:"Golf Augwil", tee:"Gelb", slope:136, cr:null, seed:true,
- chFix:{9:33}, /* aus der Runde vom 20.08. zurueckgerechnet; CR unbekannt */
+ id:"augwil_gelb", name:"Golf Augwil", tee:"Gelb", slope:137, cr:70.8, seed:true,
+ /* Course Rating des Clubs: 18 Loch gelb CR 70.8 / Slope 137 / Par 72;
+    9 Loch gelb CR 35.4 / Slope 137 / Par 36. Spielvorgabe bei HI 54: 32. */
  holes:[{n:1,par:5,idx:9,m:444},{n:2,par:4,idx:3,m:324},{n:3,par:3,idx:13,m:169},
         {n:4,par:4,idx:11,m:334},{n:5,par:5,idx:5,m:459},{n:6,par:4,idx:7,m:338},
         {n:7,par:3,idx:15,m:159},{n:8,par:5,idx:1,m:446},{n:9,par:3,idx:17,m:118}]
@@ -1905,6 +1906,34 @@ $("#ceDelete").onclick=()=>{if(!rdEditId)return;
 $("#rdExport2").onclick=()=>$("#rdExport").click();
 $("#rdExport").onclick=()=>{const b=new Blob([JSON.stringify({schema:"golf_runden_v1",courses:COURSES,rounds:ROUNDS},null,2)],{type:"application/json"});
  const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="golf_runden_"+today()+".json";a.click();URL.revokeObjectURL(u);toast("Runden exportiert");};
+/* --- v28: Augwil-Rating korrigiert -------------------------------------
+   Slope 137 / CR 70.8 (18 Loch) stammen aus den Course-Rating-PDF des Clubs.
+   9 Loch gelb: CR 35.4, Slope 137, Par 36.
+     27 x 137/113 + (35.4 - 36) = 32.13  ->  Spielvorgabe 32
+   Die Vorgabentabelle des Clubs nennt fuer HI 53.0-54.0 ebenfalls 32.
+   Das frueher fest verdrahtete chFix {9:33} war falsch und wird entfernt.
+   Es werden ausschliesslich die bekannten Falschwerte ersetzt, nichts anderes. */
+(function fix28(){
+ const FKEY=KEY+"_fix28";
+ try{ if(localStorage.getItem(FKEY))return; }catch(e){ return; }
+ const c=COURSES.find(x=>x.id=="augwil_gelb");
+ let nc=0, nr=0;
+ if(c){
+  if(c.chFix && c.chFix[9]==33){ delete c.chFix; nc++; }
+  if(c.slope==136){ c.slope=137; nc++; }
+  if(c.cr==null||c.cr===undefined){ c.cr=70.8; nc++; }
+ }
+ ROUNDS.forEach(r=>{ if(r&&r.courseId=="augwil_gelb"&&r.ch==33){ r.ch=32; nr++; } });
+ if(nc||nr){
+  try{ localStorage.setItem(RKEY+"_bak", localStorage.getItem(RKEY)||"[]");
+       localStorage.setItem(CKEY+"_bak", localStorage.getItem(CKEY)||"[]");
+       localStorage.setItem(KEY+"_bak_ts", new Date().toISOString()); }catch(e){}
+  saveC(); saveR();
+  setTimeout(()=>toast("Augwil korrigiert: Slope 137, Vorgabe 32"+(nr?(" ("+nr+" Runden)"):"")),900);
+ }
+ try{ localStorage.setItem(FKEY,"1"); }catch(e){}
+})();
+
 /* --- Import mit Sicherung, Rueckfrage und Rueckgaengig (v27) --- */
 const BRKEY=RKEY+"_bak", BCKEY=CKEY+"_bak", BTKEY=KEY+"_bak_ts";
 function impBackup(){ try{
