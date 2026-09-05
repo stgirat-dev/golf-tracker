@@ -81,7 +81,7 @@ body{padding-bottom:calc(var(--nav) + env(safe-area-inset-bottom))}
 .tbl th,.tbl td{padding:8px 6px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
 .tbl th:first-child,.tbl td:first-child{text-align:left}
 .tbl th{color:var(--mut);font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;font-weight:600}
-.scroll{overflow:auto;-webkit-overflow-scrolling:touch}
+.scroll{overflow:auto}
 .tag{font-size:10.5px;padding:2px 7px;border-radius:20px;font-weight:700}
 .tag.clean{background:rgba(95,211,141,.16);color:var(--good)}
 .tag.outlier{background:rgba(255,180,84,.16);color:var(--warn)}
@@ -167,7 +167,7 @@ canvas{width:100%;height:230px;display:block}
 .rdrow .rdn{font-weight:700;font-size:14px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rdrow .rdp{font-weight:800;font-size:17px;color:var(--tracer);min-width:36px;text-align:right}
 .rdrow .rds{font-size:13px;color:var(--mut);min-width:40px;text-align:right;padding-right:2px}
-.tbl input.cin{width:52px;background:var(--s2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:7px 4px;font-size:15px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums}
+.tbl input.cin{width:52px;min-height:44px;background:var(--s2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:7px 4px;font-size:16px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums;touch-action:manipulation;-webkit-user-select:text;user-select:text;-webkit-appearance:none;appearance:none}
 .tbl input.cin:focus{outline:none;border-color:var(--tracer)}
 .tbl tr.hl td{background:rgba(205,242,78,.06)}
 .bd{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:11px 0 2px}
@@ -176,7 +176,7 @@ canvas{width:100%;height:230px;display:block}
 .bd .bv{font-size:20px;font-weight:800;margin-top:auto;padding-top:4px}
 .tbl.cmp th,.tbl.cmp td{padding:7px 2px;font-size:12px}
 .tbl.cmp th{font-size:9.5px;letter-spacing:.2px}
-.tbl.cmp input.cin{width:40px;padding:6px 2px;font-size:14px}
+.tbl.cmp input.cin{width:40px;min-height:42px;padding:6px 2px;font-size:16px}
 .rdbtns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 /* Zwei-Ball-Erfassung */
 .stp2{display:grid;grid-template-columns:1fr auto auto;gap:9px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
@@ -277,7 +277,10 @@ canvas{width:100%;height:230px;display:block}
    <button class="go" id="planRestart" style="margin:14px 0 0;width:100%;padding:10px">Zähler neu starten</button>
   </div>
   <div class="card">
-   <div class="h3">Regeln</div>
+   <div style="display:flex;justify-content:space-between;align-items:baseline">
+    <div class="h3">Regeln</div>
+    <span class="lbl" id="appVer" style="letter-spacing:.4px"></span>
+   </div>
    <div class="pnote" style="margin-top:8px">
     <b style="color:var(--ink)">Vorher 30 Minuten einschlagen</b>, ohne zu erfassen. Gemessen am 28.07.: die ersten 35 Minuten kosten dich 20 m Carry und die doppelte Streuung.<br><br>
     <b style="color:var(--ink)">Schlechte Schläge gehören dazu.</b> Fett und getoppt auf „raus", ungewöhnlich aber getroffen auf „Ausreisser". Wer die schlechten löscht, misst nur seine besten Momente.<br><br>
@@ -419,7 +422,10 @@ canvas{width:100%;height:230px;display:block}
    </div>
 
    <div class="card">
-    <div class="lbl" style="margin-bottom:4px">Gespielte Runden</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+     <div class="lbl">Gespielte Runden</div>
+     <button class="go" id="rdExport2" style="padding:6px 11px;font-size:12px">Export</button>
+    </div>
     <div id="rdList"></div>
    </div>
 
@@ -584,6 +590,7 @@ canvas{width:100%;height:230px;display:block}
 <div class="toast" id="toast"></div>
 
 <script>
+const APPVER="v26";
 const KEY="golfTrackerV1";
 const SEEDVER="2026-07-27";
 const CLUBS=["Driver","3er","4er","5er","6er","7er","8er","9er","PW","52°","56°","58°","60°"];
@@ -1362,12 +1369,15 @@ function bE(e,b){
 
 /* --- Auswertung einer Runde --- */
 function rdHolesOf(r){
+ if(!r||!r.holes)return [];
  const c=courseById(r.courseId);
  const all=(c&&c.holes)||r.holes.map(h=>({n:h.n,par:4,idx:h.n,m:null}));
  return all.filter(h=>r.holes.some(x=>x.n==h.n));
 }
 function rdSummary(r,b){
  b=b||1;
+ if(!r||!r.holes)return {rows:[],done:0,n:0,par:0,parAll:0,ch:0,schlaege:0,putts:0,strafen:0,
+  bis:0,punkte:0,zuPar:0,extraPutts:0,oSchlaege:0,oPunkte:0,byPar:{},sd:null,zumHcp:18,ball:b};
  const c=courseById(r.courseId);
  const holes=rdHolesOf(r);
  const A=allocate(r.ch,holes);
@@ -1633,7 +1643,7 @@ function renderRdDetail(){
  }
 
  if(nb==2){
-  h+=`<div class="card"><div class="lbl" style="margin-bottom:2px">Loch für Loch · beide Bälle</div><div class="scroll"><table class="tbl cmp">
+  h+=`<div class="card rdtap"><div class="lbl" style="margin-bottom:2px">Loch für Loch · beide Bälle <span style="color:var(--sky);text-transform:none;letter-spacing:0">· tippen zum Bearbeiten</span></div><div class="scroll"><table class="tbl cmp">
    <tr><th colspan="4"></th><th class="bgrp" colspan="4">Ball 1</th><th class="bgrp b2s" colspan="4">Ball 2</th><th class="bgrp b2s"></th></tr>
    <tr><th>Loch</th><th>m</th><th>Par</th><th>Vorg</th><th>Schl</th><th>Putt</th><th>Straf</th><th>Pkt</th><th class="b2s">Schl</th><th>Putt</th><th>Straf</th><th>Pkt</th><th class="b2s">best</th></tr>`;
   S.rows.forEach((x,i)=>{const y=S2.rows[i], z=SB.rows[i];
@@ -1656,7 +1666,7 @@ function renderRdDetail(){
    <div><span class="lbl">Bester Ball</span><div class="bv tracerTxt">${SB.punkte}</div></div></div>
    <div class="rdnote">Nimmt man Loch für Loch den besseren der zwei Bälle, kommen <b>${SB.punkte} Punkte</b> bei <b>${SB.schlaege} Schlägen</b> heraus — ${gap>0?"<b>"+gap+" Punkt"+(gap==1?"":"e")+" mehr</b> als dein besserer Einzelball ("+best+")":"gleich viel wie dein besserer Einzelball"}. Dieser Abstand ist deine Streuung: er verschwindet nicht durch längere Schläge, sondern durch Wiederholbarkeit. Für Punkte, Handicap und Score Differential zählt allein Ball 1.</div></div>`;
  }else{
-  h+=`<div class="card"><div class="lbl" style="margin-bottom:2px">Loch für Loch</div><div class="scroll"><table class="tbl cmp">
+  h+=`<div class="card rdtap"><div class="lbl" style="margin-bottom:2px">Loch für Loch <span style="color:var(--sky);text-transform:none;letter-spacing:0">· tippen zum Bearbeiten</span></div><div class="scroll"><table class="tbl cmp">
    <tr><th>Loch</th><th>m</th><th>Par</th><th>Idx</th><th>Vorg</th><th>Schl</th><th>bis Grün</th><th>Putts</th><th>Straf</th><th>Pkt</th></tr>`;
   S.rows.forEach(x=>{h+=`<tr><td class="num">${x.n}</td><td class="num" style="color:var(--mut)">${x.m||"–"}</td><td class="num">${x.par}</td>
    <td class="num" style="color:var(--mut)">${x.idx}</td><td class="num tracerTxt">${x.vor}</td><td class="num" style="font-weight:700">${x.s||"–"}</td>
@@ -1702,8 +1712,10 @@ function renderRdDetail(){
   <button class="go" id="rdDetEdit" style="flex:1;padding:13px">Bearbeiten</button>
   <button class="go" id="rdDetDel" style="flex:0 0 auto;padding:13px 15px;color:var(--bad);border-color:#3a2626">Löschen</button></div>`;
  $("#rdDetail").innerHTML=h;
+ $$("#rdDetail .rdtap").forEach(el=>el.onclick=ev=>{if(ev.target.closest("button"))return;
+  rdCur=JSON.parse(JSON.stringify(r));rdHole=0;rdShow("play");});
  $("#rdDetBack").onclick=()=>rdShow("home");
- $("#rdDetEdit").onclick=()=>{rdCur=JSON.parse(JSON.stringify(r));rdHole=0;rdShow("table");};
+ $("#rdDetEdit").onclick=()=>{rdCur=JSON.parse(JSON.stringify(r));rdHole=0;rdShow("play");};
  $("#rdDetDel").onclick=()=>{if(confirm("Runde löschen?")){ROUNDS=ROUNDS.filter(x=>x.id!=r.id);saveR();rdShow("home");toast("Runde gelöscht");}};
  if($("#rdHiSave"))$("#rdHiSave").onclick=()=>{const v=parseFloat($("#rdHiIn").value);if(isNaN(v)){toast("Index eingeben");return;}rdSetHi(v);renderRdDetail();toast("Index gespeichert");};
 }
@@ -1872,6 +1884,7 @@ $("#ceSave").onclick=()=>{const err=ceValidate(); if(err){toast(err);return;}
 $("#ceDelete").onclick=()=>{if(!rdEditId)return;
  if(ROUNDS.some(r=>r.courseId==rdEditId)){toast("Zu diesem Platz gibt es Runden");return;}
  if(confirm("Platz löschen?")){COURSES=COURSES.filter(c=>c.id!=rdEditId);saveC();rdShow("home");toast("Platz gelöscht");}};
+$("#rdExport2").onclick=()=>$("#rdExport").click();
 $("#rdExport").onclick=()=>{const b=new Blob([JSON.stringify({schema:"golf_runden_v1",courses:COURSES,rounds:ROUNDS},null,2)],{type:"application/json"});
  const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="golf_runden_"+today()+".json";a.click();URL.revokeObjectURL(u);toast("Runden exportiert");};
 $("#rdImport").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
@@ -1884,6 +1897,7 @@ $("#rdImport").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new 
 
 let rt;window.addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(()=>show(activeView),150);});
 
+if($("#appVer"))$("#appVer").textContent="Tracer "+APPVER;
 buildChips();syncOpts();renderHero();renderRecent();renderPlan();renderPlanStrip();
 if(_migrated!==false)toast("Auf eingebaute "+DATA.length+" Schläge aktualisiert (alter Stand gesichert)");
 if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
