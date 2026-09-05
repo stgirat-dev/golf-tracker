@@ -142,6 +142,15 @@ canvas{width:100%;height:230px;display:block}
 .nav button{flex:1;background:none;border:none;color:var(--mut);font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;padding-top:8px}
 .nav button.on{color:var(--tracer)}
 .nav svg{width:23px;height:23px}
+.mdlbg{position:fixed;inset:0;background:rgba(0,0,0,.74);z-index:40;display:none;align-items:center;justify-content:center;padding:18px}
+.mdlbg.on{display:flex}
+.mdl{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);padding:17px;max-width:420px;width:100%;max-height:86vh;overflow:auto}
+.mdl h3{margin:0 0 9px;font-size:16px;color:var(--ink)}
+.mdl p{margin:0 0 13px;font-size:13px;line-height:1.55;color:var(--mut)}
+.mdl p b{color:var(--ink)}
+.mdl .go{width:100%;padding:12px;margin-top:8px;font-size:14px;touch-action:manipulation}
+.mdl .go.pri{background:var(--tracer);color:#16210a;border-color:var(--tracer);font-weight:800}
+.mdl .go.dgr{border-color:var(--bad);color:var(--bad)}
 .toast{position:fixed;left:50%;bottom:calc(var(--nav) + 16px);transform:translateX(-50%) translateY(8px);background:var(--tracer);color:#16210a;padding:11px 18px;border-radius:11px;font-weight:800;font-size:14px;opacity:0;transition:.22s;pointer-events:none;z-index:30}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -441,6 +450,8 @@ canvas{width:100%;height:230px;display:block}
      <button class="go" id="rdExport" style="flex:1;padding:11px">Runden exportieren</button>
      <label class="go" style="flex:1;padding:11px;text-align:center;margin:0">Runden importieren<input type="file" id="rdImport" accept=".json,application/json" hidden></label>
     </div>
+    <button class="go" id="rdUndo" style="display:none;width:100%;padding:11px;margin-top:8px;border-color:var(--warn);color:var(--warn);touch-action:manipulation">Letzten Import rückgängig machen</button>
+    <div class="hint" id="rdUndoInfo" style="display:none;margin-top:6px"></div>
    </div>
   </div>
 
@@ -587,10 +598,17 @@ canvas{width:100%;height:230px;display:block}
  <button data-v="vTrend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16 L9 10 L13 13 L20 5" stroke-linecap="round" stroke-linejoin="round"/></svg>Verlauf</button>
  <button data-v="vList"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7h14M5 12h14M5 17h14" stroke-linecap="round"/></svg>Liste</button>
 </nav>
+<div class="mdlbg" id="impBg"><div class="mdl">
+<h3>Runden importieren</h3>
+<p id="impTxt"></p>
+<button class="go pri" id="impMerge">Zusammenführen</button>
+<button class="go dgr" id="impRepl">Alles ersetzen</button>
+<button class="go" id="impCancel">Abbrechen</button>
+</div></div>
 <div class="toast" id="toast"></div>
 
 <script>
-const APPVER="v26";
+const APPVER="v27";
 const KEY="golfTrackerV1";
 const SEEDVER="2026-07-27";
 const CLUBS=["Driver","3er","4er","5er","6er","7er","8er","9er","PW","52°","56°","58°","60°"];
@@ -1369,14 +1387,14 @@ function bE(e,b){
 
 /* --- Auswertung einer Runde --- */
 function rdHolesOf(r){
- if(!r||!r.holes)return [];
+ if(!r||!Array.isArray(r.holes))return [];
  const c=courseById(r.courseId);
  const all=(c&&c.holes)||r.holes.map(h=>({n:h.n,par:4,idx:h.n,m:null}));
  return all.filter(h=>r.holes.some(x=>x.n==h.n));
 }
 function rdSummary(r,b){
  b=b||1;
- if(!r||!r.holes)return {rows:[],done:0,n:0,par:0,parAll:0,ch:0,schlaege:0,putts:0,strafen:0,
+ if(!r||!Array.isArray(r.holes))return {rows:[],done:0,n:0,par:0,parAll:0,ch:0,schlaege:0,putts:0,strafen:0,
   bis:0,punkte:0,zuPar:0,extraPutts:0,oSchlaege:0,oPunkte:0,byPar:{},sd:null,zumHcp:18,ball:b};
  const c=courseById(r.courseId);
  const holes=rdHolesOf(r);
@@ -1887,13 +1905,99 @@ $("#ceDelete").onclick=()=>{if(!rdEditId)return;
 $("#rdExport2").onclick=()=>$("#rdExport").click();
 $("#rdExport").onclick=()=>{const b=new Blob([JSON.stringify({schema:"golf_runden_v1",courses:COURSES,rounds:ROUNDS},null,2)],{type:"application/json"});
  const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="golf_runden_"+today()+".json";a.click();URL.revokeObjectURL(u);toast("Runden exportiert");};
+/* --- Import mit Sicherung, Rueckfrage und Rueckgaengig (v27) --- */
+const BRKEY=RKEY+"_bak", BCKEY=CKEY+"_bak", BTKEY=KEY+"_bak_ts";
+function impBackup(){ try{
+  localStorage.setItem(BRKEY, localStorage.getItem(RKEY)||"[]");
+  localStorage.setItem(BCKEY, localStorage.getItem(CKEY)||"[]");
+  localStorage.setItem(BTKEY, new Date().toISOString());
+  return true; }catch(e){ return false; } }
+function impHasBackup(){ try{ return localStorage.getItem(BTKEY)!=null && localStorage.getItem(BRKEY)!=null; }catch(e){ return false; } }
+function impBackupInfo(){ try{
+  const ts=localStorage.getItem(BTKEY); if(!ts)return null;
+  const rs=JSON.parse(localStorage.getItem(BRKEY)||"[]"), cs=JSON.parse(localStorage.getItem(BCKEY)||"[]");
+  const d=new Date(ts), pad=n=>String(n).padStart(2,"0");
+  return {when:pad(d.getDate())+"."+pad(d.getMonth()+1)+"."+d.getFullYear()+" "+pad(d.getHours())+":"+pad(d.getMinutes()),
+          nr:Array.isArray(rs)?rs.length:0, nc:Array.isArray(cs)?cs.length:0};
+  }catch(e){ return null; } }
+function impSyncUndo(){ const b=$("#rdUndo"), i=$("#rdUndoInfo"); if(!b)return;
+  const inf=impHasBackup()?impBackupInfo():null;
+  if(!inf){ b.style.display="none"; if(i)i.style.display="none"; return; }
+  b.style.display=""; if(i){ i.style.display="";
+    i.textContent="Sicherung vom "+inf.when+": "+inf.nr+" Runden, "+inf.nc+" Plätze"; } }
+
+let impPend=null;
+function impOpen(o){
+  impPend=o;
+  const nrOld=ROUNDS.length, ncOld=COURSES.length;
+  const nrNew=o.rounds.length, ncNew=Array.isArray(o.courses)?o.courses.length:0;
+  const have=new Set(ROUNDS.map(r=>r.id));
+  const neu=o.rounds.filter(r=>!have.has(r.id)).length;
+  $("#impTxt").innerHTML=
+    "In der App: <b>"+nrOld+" Runden</b>, "+ncOld+" Plätze.<br>"+
+    "In der Datei: <b>"+nrNew+" Runden</b>, "+ncNew+" Plätze — davon "+neu+" mit neuer ID.<br><br>"+
+    "<b>Zusammenführen</b> behält deine Runden und ergänzt die neuen.<br>"+
+    "<b>Alles ersetzen</b> löscht deine "+nrOld+" Runden.<br><br>"+
+    "In beiden Fällen wird vorher gesichert; „Rückgängig“ bleibt möglich.";
+  $("#impBg").classList.add("on");
+}
+function impClose(){ impPend=null; $("#impBg").classList.remove("on"); }
+
+function impApply(mode){
+  const o=impPend; if(!o){impClose();return;}
+  if(!impBackup()){ toast("Sicherung fehlgeschlagen — abgebrochen"); impClose(); return; }
+  if(mode=="replace"){
+    if(Array.isArray(o.courses))COURSES=o.courses;
+    ROUNDS=o.rounds;
+  }else{
+    const cid=new Set(COURSES.map(c=>c.id));
+    if(Array.isArray(o.courses))o.courses.forEach(c=>{ if(c&&c.id&&!cid.has(c.id)){COURSES.push(c);cid.add(c.id);} });
+    const rid_=new Set(ROUNDS.map(r=>r.id));
+    /* zusaetzlich Datum+Platz als Duplikatschutz, falls IDs neu vergeben wurden */
+    const key=r=>String(r.date)+"|"+String(r.courseId);
+    const dk=new Set(ROUNDS.map(key));
+    let add=0;
+    o.rounds.forEach(r=>{ if(!r||!r.id)return;
+      if(rid_.has(r.id)||dk.has(key(r)))return;
+      ROUNDS.push(r); rid_.add(r.id); dk.add(key(r)); add++; });
+    saveC(); saveR(); impClose(); rdShow("home"); impSyncUndo();
+    toast(add?("Zusammengeführt: +"+add+" Runden"):"Nichts Neues in der Datei"); return;
+  }
+  saveC(); saveR(); impClose(); rdShow("home"); impSyncUndo();
+  toast("Ersetzt: "+ROUNDS.length+" Runden");
+}
+
+$("#impMerge").onclick=()=>impApply("merge");
+$("#impRepl").onclick=()=>impApply("replace");
+$("#impCancel").onclick=impClose;
+$("#impBg").onclick=e=>{ if(e.target.id=="impBg")impClose(); };
+
+$("#rdUndo").onclick=()=>{
+  const inf=impBackupInfo(); if(!inf){toast("Keine Sicherung vorhanden");return;}
+  if(!confirm("Stand vom "+inf.when+" wiederherstellen? "+inf.nr+" Runden, "+inf.nc+" Plätze. Der jetzige Stand wird dabei ersetzt."))return;
+  try{
+    const rs=JSON.parse(localStorage.getItem(BRKEY)||"[]"), cs=JSON.parse(localStorage.getItem(BCKEY)||"[]");
+    if(!Array.isArray(rs))throw 0;
+    /* Der aktuelle Stand wird zur neuen Sicherung: Rueckgaengig laesst sich umkehren. */
+    impBackup();
+    ROUNDS=rs; if(Array.isArray(cs)&&cs.length)COURSES=cs;
+    saveC(); saveR(); rdShow("home"); impSyncUndo();
+    toast("Wiederhergestellt: "+ROUNDS.length+" Runden");
+  }catch(x){ toast("Wiederherstellen fehlgeschlagen"); } };
+
 $("#rdImport").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
  rd.onload=()=>{try{const o=JSON.parse(String(rd.result));
   if(!o||!Array.isArray(o.rounds))throw 0;
-  if(Array.isArray(o.courses))COURSES=o.courses;
-  ROUNDS=o.rounds; saveC(); saveR(); rdShow("home"); toast("Import: "+ROUNDS.length+" Runden");}
+  /* Struktur pruefen: Runden ohne Loch-Array wuerden die Auswertung zum Absturz bringen. */
+  const bad=o.rounds.filter(r=>!r||!r.id||!Array.isArray(r.holes)).length;
+  if(bad){ o.rounds=o.rounds.filter(r=>r&&r.id&&Array.isArray(r.holes));
+           toast(bad+" Runde(n) in der Datei unbrauchbar — übersprungen"); }
+  if(!o.rounds.length){ toast("Keine gültigen Runden in der Datei"); return; }
+  if(Array.isArray(o.courses))o.courses=o.courses.filter(c=>c&&c.id&&Array.isArray(c.holes));
+  impOpen(o);}
   catch(x){toast("Import fehlgeschlagen");}};
  rd.readAsText(f); e.target.value="";};
+impSyncUndo();
 
 let rt;window.addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(()=>show(activeView),150);});
 
