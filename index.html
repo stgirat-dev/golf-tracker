@@ -430,6 +430,8 @@ canvas{width:100%;height:230px;display:block}
     <button class="go" id="rdHomeBag" style="width:100%;margin-top:8px;padding:12px">Schlägerweiten und Wedge-Matrix</button>
    </div>
 
+   <div class="card" id="rdTheo"></div>
+
    <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
      <div class="lbl">Gespielte Runden</div>
@@ -608,7 +610,7 @@ canvas{width:100%;height:230px;display:block}
 <div class="toast" id="toast"></div>
 
 <script>
-const APPVER="v28";
+const APPVER="v30";
 const KEY="golfTrackerV1";
 const SEEDVER="2026-07-27";
 const CLUBS=["Driver","3er","4er","5er","6er","7er","8er","9er","PW","52°","56°","58°","60°"];
@@ -1328,6 +1330,17 @@ const SEEDCOURSES=[{
         {n:10,par:4,idx:10,m:null},{n:11,par:5,idx:4,m:null},{n:12,par:4,idx:2,m:null},
         {n:13,par:3,idx:18,m:null},{n:14,par:4,idx:14,m:null},{n:15,par:4,idx:6,m:null},
         {n:16,par:5,idx:12,m:null},{n:17,par:3,idx:8,m:null},{n:18,par:4,idx:16,m:null}]
+},{
+ id:"kyburg_herren", name:"Golf Kyburg", tee:"Herren", slope:133, cr:71.2, seed:true,
+ /* 18 Hole Championship Course, Herren: Par 71, 5709 m, Slope 133, CR 71.2.
+    Quelle: persoenliche Scorekarte ClubWebMan (WHS), Stand 25.09.2026.
+    Spielvorgabe bei HI 54: 54 x 133/113 + (71.2 - 71) = 63.76 -> 64. */
+ holes:[{n:1,par:4,idx:11,m:334},{n:2,par:5,idx:9,m:432},{n:3,par:4,idx:1,m:337},
+        {n:4,par:3,idx:17,m:164},{n:5,par:4,idx:13,m:307},{n:6,par:5,idx:3,m:507},
+        {n:7,par:4,idx:7,m:346},{n:8,par:3,idx:15,m:145},{n:9,par:5,idx:5,m:470},
+        {n:10,par:4,idx:10,m:323},{n:11,par:3,idx:16,m:123},{n:12,par:4,idx:6,m:366},
+        {n:13,par:4,idx:12,m:372},{n:14,par:3,idx:14,m:150},{n:15,par:5,idx:8,m:458},
+        {n:16,par:3,idx:18,m:145},{n:17,par:4,idx:4,m:352},{n:18,par:4,idx:2,m:378}]
 }];
 const SEEDROUNDS=[{
  id:"augwil_20260820", date:"2026-08-20", courseId:"augwil_gelb",
@@ -1495,6 +1508,104 @@ function renderRdHome(){
  /* Platzliste */
  $("#rdCourseList").innerHTML=COURSES.map(c=>`<div class="rdrow" data-ce="${c.id}"><span class="rdn">${c.name}${c.tee?" · "+c.tee:""}</span><span class="rds num">${c.holes.length} L</span><span class="rds num">Par ${c.holes.reduce((a,h)=>a+h.par,0)}</span></div>`).join("");
  $$("#rdCourseList .rdrow").forEach(el=>el.onclick=()=>{rdEditId=el.dataset.ce;rdShow("edit");});
+ renderTheo();
+}
+
+/* --- Theoretisches Handicap (v29) ---------------------------------------
+   Fortschreibung nach WHS, aber ueber ALLE erfassten Runden - unabhaengig
+   davon, ob eine Runde offiziell gewertet wurde.
+     Score Differential = (113/Slope) x (gewertetes Brutto - CR des Teils)
+     Gewertetes Brutto  = Schlaege je Loch, gedeckelt bei Netto-Doppelbogey
+                          (Par + 2 + Vorgabeschlaege des Lochs)
+     9 Loch: + erwarteter Differential der nicht gespielten neun
+             E = 0.52 x HI + 1.2   (an den publizierten WHS-Beispielen
+             kalibriert: HI 14.0 -> 8.5, HI 10.1 -> 6.5, HI 10.3 -> 6.6)
+   Danach die WHS-Tabelle je nach Anzahl vorliegender Ergebnisse.
+   Nur Ball 1, nur vollstaendig erfasste Runden, nur Plaetze mit CR+Slope. */
+const HI_START_DEFAULT=54.0;
+function sdRound(r,hiVor){
+ const S=rdSummary(r,1);
+ if(!S.n||S.done!=S.n)return null;
+ const c=courseById(r.courseId);
+ const slope=+(r.slope||(c&&c.slope)||0);
+ let cr=(r.cr!=null?r.cr:(c&&c.cr!=null?c.cr:null));
+ if(!slope||cr==null||isNaN(cr))return null;
+ const half=S.n<=9;
+ const crT=half?cr/2:cr;
+ const ags=S.rows.reduce((a,x)=>a+Math.min(x.s, x.par+2+x.vor),0);
+ const gedeckelt=S.rows.filter(x=>x.s>x.par+2+x.vor).length;
+ const sdT=(113/slope)*(ags-crT);
+ const erw=half?(0.52*hiVor+1.2):0;
+ return {n:S.n, brutto:S.schlaege, ags:ags, gedeckelt:gedeckelt, slope:slope,
+         cr:crT, sdT:sdT, erw:erw, sd18:sdT+erw};
+}
+function whsTab(n){
+ if(n<=3)return {k:1,adj:-2.0};
+ if(n==4)return {k:1,adj:-1.0};
+ if(n==5)return {k:1,adj:0};
+ if(n==6)return {k:2,adj:-1.0};
+ if(n<=8)return {k:2,adj:0};
+ if(n<=11)return {k:3,adj:0};
+ if(n<=14)return {k:4,adj:0};
+ if(n<=16)return {k:5,adj:0};
+ if(n<=18)return {k:6,adj:0};
+ if(n==19)return {k:7,adj:0};
+ return {k:8,adj:0};
+}
+function theoSerie(){
+ const start=(+rdHi())||HI_START_DEFAULT;
+ const L=ROUNDS.slice().filter(r=>r&&Array.isArray(r.holes))
+   .sort((a,b)=>(a.date||"").localeCompare(b.date||"")||(a.id>b.id?1:-1));
+ let hi=start, rec=[], out=[], ohne=0;
+ L.forEach(r=>{
+  const d=sdRound(r,hi);
+  if(!d){ohne++;return;}
+  rec.push(d.sd18);
+  const last=rec.slice(-20), t=whtab(last.length);
+  const low=last.slice().sort((x,y)=>x-y).slice(0,t.k);
+  const neu=Math.min(54.0, Math.round((low.reduce((a,x)=>a+x,0)/t.k+t.adj)*10)/10);
+  hi=neu;
+  out.push({r:r, date:r.date, d:d, n:rec.length, hi:neu});
+ });
+ return {start:start, hi:hi, rows:out, ohne:ohne};
+}
+function whtab(n){return whsTab(n);}
+function renderTheo(){
+ const box=$("#rdTheo"); if(!box)return;
+ const T=theoSerie();
+ if(!T.rows.length){
+  box.innerHTML=`<div class="lbl">Theoretisches Handicap</div>
+   <div class="hint" style="margin-top:8px">Sobald eine Runde vollständig erfasst ist und der Platz
+   Slope und CR hat, rechne ich hier deinen laufenden Index mit.${T.ohne?" ("+T.ohne+" Runde(n) ohne CR/Slope oder unvollständig)":""}</div>`;
+  return;}
+ const diff=T.start-T.hi;
+ box.innerHTML=`<div class="lbl">Theoretisches Handicap</div>
+  <div style="display:flex;align-items:baseline;gap:12px;margin-top:6px;flex-wrap:wrap">
+   <div style="font-size:40px;font-weight:800;color:var(--tracer);line-height:1">${T.hi.toFixed(1)}</div>
+   <div class="hint" style="margin:0">aus ${T.rows.length} Runde${T.rows.length==1?"":"n"} ·
+    Start ${T.start.toFixed(1)} ·
+    <b style="color:${diff>0?"var(--tracer)":"var(--mut)"}">${diff>0?"−":"+"}${Math.abs(diff).toFixed(1)}</b></div>
+  </div>
+  <div style="overflow-x:auto;margin-top:12px"><table style="width:100%;border-collapse:collapse;font-size:13px">
+   <tr class="lbl"><td style="padding:4px 8px 4px 0">Datum</td><td class="num" style="text-align:right;padding:4px 8px">Brutto</td>
+   <td class="num" style="text-align:right;padding:4px 8px">SD</td><td class="num" style="text-align:right;padding:4px 8px">+ erw.</td>
+   <td class="num" style="text-align:right;padding:4px 8px">= SD18</td><td class="num" style="text-align:right;padding:4px 0">Index</td></tr>
+   ${T.rows.map((x,i)=>{const prev=i?T.rows[i-1].hi:T.start;
+    const runter=x.hi<prev-0.049;
+    return `<tr style="border-top:1px solid var(--line)">
+     <td style="padding:6px 8px 6px 0">${(x.date||"").slice(8,10)}.${(x.date||"").slice(5,7)}.</td>
+     <td class="num" style="text-align:right;padding:6px 8px">${x.d.brutto}${x.d.gedeckelt?`<span style="color:var(--warn)">*</span>`:""}</td>
+     <td class="num" style="text-align:right;padding:6px 8px">${x.d.sdT.toFixed(1)}</td>
+     <td class="num" style="text-align:right;padding:6px 8px;color:var(--mut)">${x.d.erw?x.d.erw.toFixed(1):"–"}</td>
+     <td class="num" style="text-align:right;padding:6px 8px">${x.d.sd18.toFixed(1)}</td>
+     <td class="num" style="text-align:right;padding:6px 0;font-weight:800;color:${runter?"var(--tracer)":"var(--ink)"}">${x.hi.toFixed(1)}</td></tr>`;}).join("")}
+  </table></div>
+  <div class="hint">Gewertetes Brutto mit Netto-Doppelbogey-Deckel${T.rows.some(x=>x.d.gedeckelt)?` (<span style="color:var(--warn)">*</span> Deckel greift)`:""}.
+   Bei 9 Loch kommt der erwartete Differential der nicht gespielten neun dazu.
+   Zählt bei ${T.rows.length} Ergebnissen: ${(()=>{const t=whsTab(Math.min(20,T.rows.length));
+     return "der niedrigste "+(t.k>1?t.k+" im Schnitt":"")+(t.adj?" minus "+Math.abs(t.adj).toFixed(1):"");})()}.
+   ${T.ohne?T.ohne+" Runde(n) fehlen (unvollständig oder Platz ohne CR/Slope). ":""}
+   Eigene Rechnung, kein offizieller Index.</div>`;
 }
 
 /* --- Runde starten --- */
