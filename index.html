@@ -480,6 +480,8 @@ canvas{width:100%;height:230px;display:block}
     <div class="pbarw"><div class="pbar" id="rdBar" style="width:0%"></div></div>
    </div>
 
+   <div class="card" id="rdBB" style="display:none"></div>
+
    <div class="statusrow" id="rdBallMode" style="margin:0 0 13px"><div class="seg on" data-nb="1">1 Ball</div><div class="seg" data-nb="2">2 Bälle</div></div>
 
    <div class="card">
@@ -610,7 +612,7 @@ canvas{width:100%;height:230px;display:block}
 <div class="toast" id="toast"></div>
 
 <script>
-const APPVER="v30";
+const APPVER="v31";
 const KEY="golfTrackerV1";
 const SEEDVER="2026-07-27";
 const CLUBS=["Driver","3er","4er","5er","6er","7er","8er","9er","PW","52°","56°","58°","60°"];
@@ -1331,7 +1333,7 @@ const SEEDCOURSES=[{
         {n:13,par:3,idx:18,m:null},{n:14,par:4,idx:14,m:null},{n:15,par:4,idx:6,m:null},
         {n:16,par:5,idx:12,m:null},{n:17,par:3,idx:8,m:null},{n:18,par:4,idx:16,m:null}]
 },{
- id:"kyburg_herren", name:"Golf Kyburg", tee:"Herren", slope:133, cr:71.2, seed:true,
+ id:"kyburg_herren", name:"Golf Kyburg", tee:"Gelb", slope:133, cr:71.2, seed:true,
  /* 18 Hole Championship Course, Herren: Par 71, 5709 m, Slope 133, CR 71.2.
     Quelle: persoenliche Scorekarte ClubWebMan (WHS), Stand 25.09.2026.
     Spielvorgabe bei HI 54: 54 x 133/113 + (71.2 - 71) = 63.76 -> 64. */
@@ -1608,6 +1610,59 @@ function renderTheo(){
    Eigene Rechnung, kein offizieller Index.</div>`;
 }
 
+/* --- Birdiebook (v31) ----------------------------------------------------
+   Quelle: Golf Kyburg, Course Guide / Birdiebook 2023, gelber Abschlag.
+   Alle Distanzen in Metern vom gelben Tee. a = Hindernis erreicht, b = ueberflogen.
+   Arten: zone (Laengszone a-b), ab (seitlich ab a), bis (seitlich bis b),
+          seite (seitliche Strecke a-b), pkt (Referenzpunkt a).
+   Driver-Referenz: 47 R10-Schlaege vom 23.09.2026, TaylorMade Qi10 9 Grad,
+   je [Carry, Gesamt]. Ein Ball, der in eine Zone rollt, bleibt dort liegen. */
+const BIRDIE={"kyburg_herren":{"1":{"z":-15,"x":["Aus rechts entlang"],"h":[["Bunker","L","zone",143,161],["Bunker","L","zone",221,243]]},"2":{"z":5,"x":["Aus beidseits","Querbunker 68–105 m vor dem Grün"],"h":[["Bunker","R","zone",152,170]]},"3":{"z":19,"x":["Fairway endet bei 276 m"],"h":[["Biotop","R","ab",130,null],["Kuppe","L","pkt",173,null],["Kuppe","R","pkt",193,null]],"u":"Kuppen-Zuordnung links/rechts unsicher"},"4":{"z":-14,"x":[],"g":[148,32]},"5":{"z":8,"x":["Aus rechts hinter den Bäumen","Grünbunker rechts"],"h":[["Bäume (Knick)","L","pkt",167,null],["Kuppe","","pkt",237,null]]},"6":{"z":-4,"x":["Aus links entlang, nah am Fairway","Bunker rechts 79–116 m vor dem Grün"],"h":[["Fairwaymitte","","pkt",221,null]]},"7":{"z":2,"x":["Aus links entlang"],"h":[["Bunker","R","zone",165,205]]},"8":{"z":7,"x":["Bunker rechts neben dem Grün"],"g":[128,31]},"9":{"z":-11,"x":["Wasser links 57–72 m vor dem Grün"],"h":[["Baumreihe","R","seite",143,231]]},"10":{"z":-5,"x":["Wasser rechts bis ans Grün"],"h":[["Bunker","L","zone",177,222],["Wasser","R","ab",222,null]]},"11":{"z":-10,"x":["Wasser vorne und rechts"],"g":[111,23]},"12":{"z":3,"x":[],"h":[["Bunker","R","zone",181,225],["Bunker","L","zone",210,237]]},"13":{"z":-9,"x":["Aus hinter dem Grün"],"h":[["Bunker","L","zone",209,232]]},"14":{"z":-4,"x":["Wasser rechts, Bunker links am Grün","Aus links"],"g":[138,26]},"15":{"z":-6,"x":["Aus links"],"h":[["Wasser","L","ab",197,null],["Bach quer","","zone",213,229]]},"16":{"z":-16,"x":["Bach quer vor dem Grün (keine Distanz im Heft)","Aus links","Bunker rechts am Grün"],"g":[132,25]},"17":{"z":7,"x":["Aus links entlang"],"h":[["Bäume","R","pkt",162,null],["Wasser","R","ab",255,null]],"u":"Bedeutung der Marke 162 m rechts nicht eindeutig"},"18":{"z":4,"x":["Wasser quer 26 m vor dem Grün","Aus links"],"h":[["Wasser","R","bis",null,190],["Bäume","R","pkt",239,null],["Baum","L","pkt",243,null]],"u":"Marke 243 m links: Zuordnung zum Baum nicht eindeutig"}}};
+const DRV_REF=[[175.6,220.4],[168.3,221.9],[149.5,228.1],[204.3,218.7],[195.5,240.6],[201.5,266.1],[207.8,226.2],[215.2,229.8],[115.5,221.5],[154.0,185.8],[209.9,227.0],[210.4,230.6],[149.7,192.9],[49.4,92.3],[188.1,205.3],[208.2,226.9],[201.3,215.6],[190.1,207.5],[87.5,141.9],[83.7,148.3],[163.1,218.3],[208.9,228.6],[196.5,215.4],[184.9,225.8],[161.7,222.0],[209.0,228.9],[213.9,239.8],[217.5,238.3],[212.5,232.3],[181.3,231.8],[219.7,236.4],[152.3,211.6],[80.8,143.6],[216.8,237.0],[221.9,238.4],[207.2,266.9],[210.6,226.4],[94.7,166.2],[205.2,248.5],[219.4,236.8],[215.0,230.7],[226.7,242.9],[212.2,228.8],[204.1,242.5],[213.2,228.1],[170.4,183.4],[214.1,249.6]];
+function bbDrvZone(a,b){ let kurz=0,drin=0,ueber=0;
+ DRV_REF.forEach(([c,t])=>{ if(t<a)kurz++; else if(c>b)ueber++; else drin++; });
+ const n=DRV_REF.length; return {kurz:Math.round(100*kurz/n),drin:Math.round(100*drin/n),ueber:Math.round(100*ueber/n)}; }
+function bbDrvReach(a){ return Math.round(100*DRV_REF.filter(([c,t])=>t>=a).length/DRV_REF.length); }
+function renderBB(courseId,n){
+ const box=$("#rdBB"); if(!box)return;
+ const H=BIRDIE[courseId]&&BIRDIE[courseId][n];
+ if(!H){box.style.display="none";box.innerHTML="";return;}
+ box.style.display="";
+ const seite=s=>s=="L"?"links":(s=="R"?"rechts":"");
+ const hz=H.z?`<span style="color:var(--mut)">${H.z>0?"+":""}${H.z} m ${H.z>0?"bergauf":"bergab"}</span>`:"";
+ let body="";
+ if(H.g){
+  body+=`<div style="font-size:17px;font-weight:800;margin-top:6px">Grünanfang ${H.g[0]} m</div>
+   <div class="hint" style="margin-top:3px">Grüntiefe ${H.g[1]} m · Grünende ${H.g[0]+H.g[1]} m ${hz?"· "+hz:""}</div>`;
+ }
+ (H.h||[]).forEach(([t,s,k,a,b])=>{
+  let head="",det="",warn=false;
+  if(k=="zone"){ head=`${t} ${seite(s)} · ${a}–${b} m`; const z=bbDrvZone(a,b); warn=z.drin>=40;
+   det=`Driver: <b>${z.kurz}%</b> davor · <b style="color:${warn?"var(--warn)":"var(--ink)"}">${z.drin}%</b> drin · <b>${z.ueber}%</b> drüber`+
+       (warn?`<br><span style="color:var(--warn)">Vorlegen: Gesamtweite unter ${a} m</span>`:""); }
+  else if(k=="ab"){ head=`${t} ${seite(s)} ab ${a} m`; const r=bbDrvReach(a); warn=r>=40;
+   det=`Driver erreicht diese Höhe: <b style="color:${warn?"var(--warn)":"var(--ink)"}">${r}%</b>`; }
+  else if(k=="pkt"){ head=`${t} ${seite(s)} bei ${a} m`.replace("  "," "); det=`Driver erreicht: <b>${bbDrvReach(a)}%</b>`; }
+  else if(k=="seite"){ head=`${t} ${seite(s)} von ${a} bis ${b} m`; }
+  else if(k=="bis"){ head=`${t} ${seite(s)} vom Abschlag bis ${b} m`; }
+  body+=`<div style="padding:8px 0;border-top:1px solid var(--line);margin-top:6px">
+   <div style="font-weight:700;${warn?"color:var(--warn)":""}">${head}</div>
+   ${det?`<div class="hint" style="margin-top:3px">${det}</div>`:""}</div>`;
+ });
+ if(!H.g && hz) body+=`<div class="hint" style="margin-top:8px">Bis 250 m: ${hz}</div>`;
+ (H.x||[]).forEach(x=>{ body+=`<div class="hint" style="margin-top:5px">· ${x}</div>`; });
+ if(H.u) body+=`<div class="hint" style="margin-top:8px;color:var(--warn)">Unsicher abgelesen: ${H.u}</div>`;
+ box.innerHTML=`<div class="lbl">${H.g?"Birdiebook · Par 3 · gelb":"Abschlag · Birdiebook · gelb"}</div>${body}
+  ${H.h&&H.h.some(x=>x[2]=="zone"||x[2]=="ab"||x[2]=="pkt")?`<div class="hint" style="margin-top:9px;opacity:.75">Nur Längsachse: 47 Driverschläge vom 23.09. (R10). Ob ein Ball seitlich im Hindernis landet, ist nicht berücksichtigt.</div>`:""}`;
+}
+/* Einmalig: Kyburg-Abschlag heisst "Gelb" (Birdiebook: Men Forward Tees, CR 71.2 / Slope 133) */
+(function fix31(){ const K=KEY+"_fix31"; try{ if(localStorage.getItem(K))return; }catch(e){ return; }
+ const c=COURSES.find(x=>x.id=="kyburg_herren"); let ch=0;
+ if(c&&c.tee=="Herren"){ c.tee="Gelb"; ch++; }
+ ROUNDS.forEach(r=>{ if(r&&r.courseId=="kyburg_herren"&&r.tee=="Herren"){ r.tee="Gelb"; ch++; } });
+ if(ch){ saveC(); saveR(); }
+ try{ localStorage.setItem(K,"1"); }catch(e){} })();
+
 /* --- Runde starten --- */
 function rdStartRound(){
  const c=courseById(rdCourseSel); if(!c){toast("Kein Platz gewählt");return;}
@@ -1635,6 +1690,7 @@ function renderRdPlay(){
  $("#rdHolePar").textContent=h.par; $("#rdHoleIdx").textContent=h.idx;
  $("#rdHoleVor").textContent=row.vor; $("#rdHoleNet").textContent=row.net;
  $("#rdHoleM").textContent=h.m?h.m+" m":"–";
+ renderBB(rdCur.courseId,h.n);
  $$("#rdBallMode .seg").forEach(x=>x.classList.toggle("on",+x.dataset.nb==nb));
  $("#rdStp1").style.display=nb==2?"none":"";
  $("#rdStp2").style.display=nb==2?"":"none";
