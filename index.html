@@ -151,6 +151,15 @@ canvas{width:100%;height:230px;display:block}
 .mdl .go{width:100%;padding:12px;margin-top:8px;font-size:14px;touch-action:manipulation}
 .mdl .go.pri{background:var(--tracer);color:#16210a;border-color:var(--tracer);font-weight:800}
 .mdl .go.dgr{border-color:var(--bad);color:var(--bad)}
+.bbv{position:fixed;inset:0;background:#000;z-index:50;display:none;flex-direction:column}
+.bbv.on{display:flex}
+.bbv .bbh{display:flex;align-items:center;gap:8px;padding:10px 12px;padding-top:calc(10px + env(safe-area-inset-top));background:var(--s1);border-bottom:1px solid var(--line)}
+.bbv .bbh b{flex:1;font-size:15px}
+.bbv .bbh .go{padding:9px 12px;font-size:14px;touch-action:manipulation}
+.bbv .bbh .go.on{background:var(--tracer);color:#16210a;border-color:var(--tracer)}
+.bbv .bbs{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;background:#fff}
+.bbv .bbs img{display:block;width:100%;height:auto}
+.bbv .bbs.zoom img{width:220%}
 .toast{position:fixed;left:50%;bottom:calc(var(--nav) + 16px);transform:translateX(-50%) translateY(8px);background:var(--tracer);color:#16210a;padding:11px 18px;border-radius:11px;font-weight:800;font-size:14px;opacity:0;transition:.22s;pointer-events:none;z-index:30}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -443,6 +452,7 @@ canvas{width:100%;height:230px;display:block}
    <div class="card">
     <div class="lbl" style="margin-bottom:9px">Plätze</div>
     <div id="rdCourseList"></div>
+    <div id="bbStore"></div>
     <button class="go" id="rdNewCourse" style="margin-top:10px;width:100%;padding:11px">Neuen Platz anlegen</button>
    </div>
 
@@ -609,10 +619,12 @@ canvas{width:100%;height:230px;display:block}
 <button class="go dgr" id="impRepl">Alles ersetzen</button>
 <button class="go" id="impCancel">Abbrechen</button>
 </div></div>
+<div class="bbv" id="bbView"><div class="bbh"><b id="bbvTitle">Loch</b><button class="go" id="bbvPlan">Plan</button><button class="go" id="bbvGruen">Grün</button><button class="go" id="bbvZoom">Zoom</button><button class="go" id="bbvClose">✕</button></div><div class="bbs" id="bbvScroll"><img id="bbvImg" alt=""></div></div>
+<input type="file" id="bbFile" accept="application/pdf,.pdf" hidden>
 <div class="toast" id="toast"></div>
 
 <script>
-const APPVER="v31";
+const APPVER="v32";
 const KEY="golfTrackerV1";
 const SEEDVER="2026-07-27";
 const CLUBS=["Driver","3er","4er","5er","6er","7er","8er","9er","PW","52°","56°","58°","60°"];
@@ -1511,6 +1523,7 @@ function renderRdHome(){
  $("#rdCourseList").innerHTML=COURSES.map(c=>`<div class="rdrow" data-ce="${c.id}"><span class="rdn">${c.name}${c.tee?" · "+c.tee:""}</span><span class="rds num">${c.holes.length} L</span><span class="rds num">Par ${c.holes.reduce((a,h)=>a+h.par,0)}</span></div>`).join("");
  $$("#rdCourseList .rdrow").forEach(el=>el.onclick=()=>{rdEditId=el.dataset.ce;rdShow("edit");});
  renderTheo();
+ renderBBStore();
 }
 
 /* --- Theoretisches Handicap (v29) ---------------------------------------
@@ -1653,6 +1666,7 @@ function renderBB(courseId,n){
  (H.x||[]).forEach(x=>{ body+=`<div class="hint" style="margin-top:5px">· ${x}</div>`; });
  if(H.u) body+=`<div class="hint" style="margin-top:8px;color:var(--warn)">Unsicher abgelesen: ${H.u}</div>`;
  box.innerHTML=`<div class="lbl">${H.g?"Birdiebook · Par 3 · gelb":"Abschlag · Birdiebook · gelb"}</div>${body}
+  ${bbCardButtons(courseId,n)}
   ${H.h&&H.h.some(x=>x[2]=="zone"||x[2]=="ab"||x[2]=="pkt")?`<div class="hint" style="margin-top:9px;opacity:.75">Nur Längsachse: 47 Driverschläge vom 23.09. (R10). Ob ein Ball seitlich im Hindernis landet, ist nicht berücksichtigt.</div>`:""}`;
 }
 /* Einmalig: Kyburg-Abschlag heisst "Gelb" (Birdiebook: Men Forward Tees, CR 71.2 / Slope 133) */
@@ -1662,6 +1676,111 @@ function renderBB(courseId,n){
  ROUNDS.forEach(r=>{ if(r&&r.courseId=="kyburg_herren"&&r.tee=="Herren"){ r.tee="Gelb"; ch++; } });
  if(ch){ saveC(); saveR(); }
  try{ localStorage.setItem(K,"1"); }catch(e){} })();
+
+/* --- Birdiebook-Bilder (v32) ---------------------------------------------
+   Die Bilder werden NICHT mit der App ausgeliefert (Heft des Clubs, oeffentliches
+   Repo). Der Nutzer laedt das PDF einmal auf seinem Geraet; die App rendert die
+   Lochseiten mit pdf.js und speichert sie nur lokal in IndexedDB.
+   Kyburg Birdiebook 2023: 44 Seiten; Loch n = Gruenseite 2n+4, Lochplan 2n+5. */
+const BB_PDF={kyburg_herren:{name:"Birdiebook Kyburg 2023",pages:44,holes:18,
+  page:(n,k)=>k=="gruen"?2*n+4:2*n+5}};
+const BB_FLAG=id=>KEY+"_bbimg_"+id;
+function bbHasImg(id){ try{ return !!localStorage.getItem(BB_FLAG(id)); }catch(e){ return false; } }
+function bbDB(){ return new Promise((ok,no)=>{ const r=indexedDB.open("tracerBB",1);
+  r.onupgradeneeded=()=>{ r.result.createObjectStore("pages"); };
+  r.onsuccess=()=>ok(r.result); r.onerror=()=>no(r.error); }); }
+async function bbPut(k,v){ const db=await bbDB(); return new Promise((ok,no)=>{ const t=db.transaction("pages","readwrite");
+  t.objectStore("pages").put(v,k); t.oncomplete=()=>{db.close();ok();}; t.onerror=()=>{db.close();no(t.error);}; }); }
+async function bbGet(k){ const db=await bbDB(); return new Promise((ok,no)=>{ const t=db.transaction("pages","readonly");
+  const q=t.objectStore("pages").get(k); q.onsuccess=()=>{db.close();ok(q.result);}; q.onerror=()=>{db.close();no(q.error);}; }); }
+async function bbDel(id){ const db=await bbDB(); return new Promise((ok,no)=>{ const t=db.transaction("pages","readwrite");
+  const s=t.objectStore("pages"); const q=s.getAllKeys();
+  q.onsuccess=()=>{ q.result.filter(k=>String(k).startsWith(id+":")).forEach(k=>s.delete(k)); };
+  t.oncomplete=()=>{db.close();ok();}; t.onerror=()=>{db.close();no(t.error);}; }); }
+let PDFJS_P=null;
+function bbLoadPdfJs(){ if(window.pdfjsLib)return Promise.resolve(window.pdfjsLib);
+  if(PDFJS_P)return PDFJS_P;
+  PDFJS_P=new Promise((ok,no)=>{ const s=document.createElement("script");
+   s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+   s.onload=()=>{ if(!window.pdfjsLib){no(new Error("pdf.js fehlt"));return;}
+     window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+     ok(window.pdfjsLib); };
+   s.onerror=()=>{ PDFJS_P=null; no(new Error("pdf.js nicht ladbar – Internet?")); };
+   document.head.appendChild(s); });
+  return PDFJS_P; }
+let bbImportFor=null, bbBusy=false;
+function bbStatus(t){ const e=$("#bbProg"); if(e)e.textContent=t; const f=$("#bbProgCard"); if(f)f.textContent=t; }
+async function bbImport(file,id){
+ const M=BB_PDF[id]; if(!M||bbBusy)return; bbBusy=true;
+ try{
+  bbStatus("pdf.js wird geladen …");
+  const lib=await bbLoadPdfJs();
+  bbStatus("PDF wird gelesen …");
+  const doc=await lib.getDocument({data:await file.arrayBuffer()}).promise;
+  if(doc.numPages!=M.pages){ toast("Falsches PDF: "+doc.numPages+" statt "+M.pages+" Seiten");
+   bbStatus("Abgebrochen: das PDF hat "+doc.numPages+" Seiten, erwartet "+M.pages+"."); return; }
+  const cv=document.createElement("canvas"), ctx=cv.getContext("2d");
+  let i=0; const tot=M.holes*2;
+  for(let n=1;n<=M.holes;n++) for(const k of ["plan","gruen"]){
+   i++; bbStatus("Seite "+i+" von "+tot+" …");
+   const pg=await doc.getPage(M.page(n,k));
+   const v0=pg.getViewport({scale:1}), sc=1000/v0.width, vp=pg.getViewport({scale:sc});
+   cv.width=Math.round(vp.width); cv.height=Math.round(vp.height);
+   ctx.fillStyle="#fff"; ctx.fillRect(0,0,cv.width,cv.height);
+   await pg.render({canvasContext:ctx,viewport:vp}).promise;
+   const blob=await new Promise(r=>cv.toBlob(r,"image/jpeg",0.82));
+   await bbPut(id+":"+n+":"+k,blob);
+   pg.cleanup();
+  }
+  try{ localStorage.setItem(BB_FLAG(id),JSON.stringify({n:tot,t:new Date().toISOString()})); }catch(e){}
+  bbStatus(""); toast("Birdiebook-Bilder gespeichert: "+tot+" Seiten");
+  renderBBStore(); if(rdMode=="play")renderRdPlay();
+ }catch(err){ bbStatus("Fehler: "+(err&&err.message||err)); toast("Bilder-Import fehlgeschlagen"); }
+ finally{ bbBusy=false; }
+}
+$("#bbFile").onchange=e=>{ const f=e.target.files[0]; e.target.value=""; if(f&&bbImportFor)bbImport(f,bbImportFor); };
+function bbPick(id){ bbImportFor=id; $("#bbFile").click(); }
+
+let bbvState=null, bbvURL=null;
+async function bbShow(id,n,k){
+ const blob=await bbGet(id+":"+n+":"+k).catch(()=>null);
+ if(!blob){ toast("Bild fehlt – Birdiebook neu laden"); return; }
+ if(bbvURL)URL.revokeObjectURL(bbvURL);
+ bbvURL=URL.createObjectURL(blob); bbvState={id:id,n:n,k:k};
+ $("#bbvImg").src=bbvURL; $("#bbvTitle").textContent="Loch "+n+" · "+(k=="plan"?"Lochplan":"Grün");
+ $("#bbvPlan").classList.toggle("on",k=="plan"); $("#bbvGruen").classList.toggle("on",k=="gruen");
+ $("#bbView").classList.add("on"); $("#bbvScroll").scrollTop=0; $("#bbvScroll").scrollLeft=0;
+}
+$("#bbvPlan").onclick=()=>bbvState&&bbShow(bbvState.id,bbvState.n,"plan");
+$("#bbvGruen").onclick=()=>bbvState&&bbShow(bbvState.id,bbvState.n,"gruen");
+$("#bbvZoom").onclick=()=>{ const s=$("#bbvScroll"); s.classList.toggle("zoom"); $("#bbvZoom").classList.toggle("on",s.classList.contains("zoom")); };
+$("#bbvClose").onclick=()=>{ $("#bbView").classList.remove("on"); if(bbvURL){URL.revokeObjectURL(bbvURL);bbvURL=null;} };
+
+function bbCardButtons(id,n){
+ if(!BB_PDF[id])return "";
+ if(bbHasImg(id)) return `<div style="display:flex;gap:8px;margin-top:10px">
+   <button class="go" style="flex:1;padding:11px;touch-action:manipulation" onclick="bbShow('${id}',${n},'plan')">Lochplan</button>
+   <button class="go" style="flex:1;padding:11px;touch-action:manipulation" onclick="bbShow('${id}',${n},'gruen')">Grün</button></div>`;
+ return `<button class="go" style="width:100%;margin-top:10px;padding:10px;touch-action:manipulation" onclick="bbPick('${id}')">Birdiebook-Bilder laden (PDF)</button>
+   <div class="hint" id="bbProgCard"></div>`;
+}
+function renderBBStore(){
+ const box=$("#bbStore"); if(!box)return;
+ const ids=Object.keys(BB_PDF).filter(id=>courseById(id));
+ box.innerHTML=ids.map(id=>{ const M=BB_PDF[id]; let st="";
+  try{ const f=JSON.parse(localStorage.getItem(BB_FLAG(id))||"null");
+   if(f) st=`${f.n} Seiten, geladen am ${f.t.slice(8,10)}.${f.t.slice(5,7)}.`; }catch(e){}
+  return `<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">
+   <div class="lbl">${M.name}</div>
+   <div class="hint" style="margin-top:4px">${st||"Bilder noch nicht geladen."} Nur auf diesem Gerät gespeichert.</div>
+   <div style="display:flex;gap:8px;margin-top:8px">
+    <button class="go" style="flex:1;padding:10px" onclick="bbPick('${id}')">${st?"Neu laden":"PDF laden"}</button>
+    ${st?`<button class="go" style="padding:10px" onclick="bbRemove('${id}')">Löschen</button>`:""}
+   </div><div class="hint" id="bbProg"></div></div>`; }).join("");
+}
+async function bbRemove(id){ if(!confirm("Birdiebook-Bilder von diesem Gerät löschen?"))return;
+ await bbDel(id).catch(()=>{}); try{ localStorage.removeItem(BB_FLAG(id)); }catch(e){}
+ renderBBStore(); toast("Bilder gelöscht"); }
 
 /* --- Runde starten --- */
 function rdStartRound(){
