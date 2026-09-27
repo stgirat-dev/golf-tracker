@@ -584,7 +584,14 @@ canvas{width:100%;height:230px;display:block}
    <div class="card">
     <div class="lbl" style="margin-bottom:2px">Eisen und Driver</div>
     <div class="scroll"><table class="tbl cmp" id="bagIrons"></table></div>
-    <div class="hint">Garmin R10, gemessener Ballflug. Eisen und Driver Srixon: 17.–19.08.2026, noch mit dem alten Griff (vor dem Hammer-Grip). Driver Qi: 23.09.2026, alle 47 Schläge inklusive Fehlschläge — deshalb liegt p25 deutlich unter dem Median. <span class="tracerTxt">Grün</span> = die vier Schläger mit trennenden Nachbarn.</div>
+    <div class="hint">Nur saubere Schläge, Garmin R10, Eisen = Takomo 201 MKII (ab 17.08.). „sauber“ = verbleibende/alle Schläge nach der Ausreisser-Elimination. <span style="color:var(--warn)">⚠ alter Griff</span>: mit dem Hammer-Grip noch zu wenig gemessen (4er: 0, 5er: 2 saubere) — bei 7er bis 9er ist der neue Griff 14–19 m kürzer, diese Werte sind also vermutlich zu lang.</div>
+    <details style="margin-top:8px"><summary class="hint" style="cursor:pointer;color:var(--sky)">Methode</summary><div class="rdnote" style="margin-top:6px">
+    <b>1. Messfehler:</b> fehlende Werte, Smash über 1,45 (Eisen) bzw. 1,52 (Driver).<br>
+    <b>2. Robuste Schätzung je Schläger:</b> Zentrum = Median, σ = 1,4826 × MAD der Werte <i>oberhalb</i> des Medians. Fehlschläge ziehen nur nach unten; die obere Hälfte liefert eine unverfälschte Streuung.<br>
+    <b>3. Ausreisser:</b> Ballspeed oder Carry/Ballspeed mehr als 2,5 σ unter dem Median (Fehltreffer bzw. getoppt/zu tief/abgerissen) oder mehr als 3,5 σ darüber (Fehlmessung). Carry/Ballspeed je Griffperiode (der Griff hat Abflug und Spin verändert), Ballspeed gepoolt.<br>
+    <b>4. Alter gegen neuen Griff:</b> Mann-Whitney-U, α = 5 %. Signifikant → nur neuer Griff; nicht signifikant → gepoolt; weniger als 8 saubere Schläge mit neuem Griff → alter Griff, markiert.<br>
+    <b>Kontrolle:</b> 45 deiner 75 BAD-Markierungen wurden gefunden; die übrigen 30 haben normale Weite (Median 0 m vom Schläger-Median), vermutlich wegen Richtung markiert. Insgesamt 19 % der Schläge entfernt.<br>
+    Der PW hat keine erkennbaren Ausreisser: seine Streuung ist durchgehend, nicht zweigeteilt.</div></details>
    </div>
 
    <div class="card">
@@ -595,7 +602,7 @@ canvas{width:100%;height:230px;display:block}
 
    <div class="card">
     <div class="lbl">Zwei Skalen</div>
-    <div class="rdnote">Eisen und Driver stammen aus der R10-Radarmessung, die Wedge-Matrix aus der Anlagenanzeige. Der PW steht in beiden: <b>112,4 m</b> (R10) und <b>106,5 m</b> (Anlage). Die Nahtstelle ist geprüft — das 52° voll wurde einmal auf beiden Skalen gemessen und ergab 79,1 gegen 79,0 m. Am kurzen Ende sind die Skalen also deckungsgleich, oben nicht.</div>
+    <div class="rdnote">Eisen und Driver stammen aus der R10-Radarmessung, die Wedge-Matrix aus der Anlagenanzeige. Der PW steht in beiden: <b>105,5 m</b> (R10, saubere Schläge) und <b>106,5 m</b> (Anlage). Das 52° voll wurde einmal auf beiden Skalen gemessen: 79,1 gegen 79,0 m. Am kurzen Ende sind die Skalen deckungsgleich.</div>
    </div>
 
    <button class="go" id="bagBack" style="width:100%;padding:14px;font-size:15px">Zurück</button>
@@ -657,7 +664,7 @@ canvas{width:100%;height:230px;display:block}
 <div class="toast" id="toast"></div>
 
 <script>
-const APPVER="v35";
+const APPVER="v36";
 const KEY="golfTrackerV1";
 const SEEDVER="2026-07-27";
 const CLUBS=["Driver","3er","4er","5er","6er","7er","8er","9er","PW","52°","56°","58°","60°"];
@@ -2334,15 +2341,15 @@ function ceValidate(){
 /* Feste Referenzwerte. BEWUSST nicht aus DATA berechnet: der Datensatz mischt
    R10-Radar und Anlagenanzeige, eine Live-Rechnung wuerde die Skalen vermengen. */
 const BAG=[
- {k:"Driver Qi",     med:204.1,p25:165.7,n:47,src:"R10",d:"23.09."},
- {k:"Driver Srixon", med:187.3,p25:169.0,n:36,src:"R10"},
- {k:"5er",           med:167.1,p25:158.2,n:36,src:"R10",rec:1},
- {k:"4er",           med:164.0,p25:145.8,n:31,src:"R10"},
- {k:"6er",           med:154.4,p25:138.2,n:48,src:"R10"},
- {k:"7er",           med:149.5,p25:138.5,n:56,src:"R10",rec:1},
- {k:"8er",           med:144.7,p25:137.7,n:40,src:"R10"},
- {k:"9er",           med:127.7,p25:119.8,n:72,src:"R10",rec:1},
- {k:"PW",            med:112.4,p25:104.9,n:53,src:"R10",rec:1}
+ {k:"Driver Qi",med:209.0,p25:201.5,n:33,nt:48,src:"R10",g:"neu",d:"23.09."},
+ {k:"Driver Srixon",med:214.0,p25:193.1,n:15,nt:20,src:"R10",g:"neu",d:"14.09.",p:0.0486,dm:19.8},
+ {k:"4er",med:154.6,p25:142.4,n:29,nt:36,src:"R10",g:"alt",d:"17.08.–19.08.",nneu:0},
+ {k:"5er",med:166.7,p25:160.3,n:23,nt:33,src:"R10",g:"alt",d:"17.08.–19.08.",nneu:2},
+ {k:"6er",med:148.8,p25:135.0,n:63,nt:85,src:"R10",g:"alt+neu",d:"17.08.–14.09.",p:0.0734,dm:-12.1},
+ {k:"7er",med:133.5,p25:123.1,n:55,nt:74,src:"R10",g:"neu",d:"14.09.–23.09.",p:0.0001,dm:-15.8},
+ {k:"8er",med:124.7,p25:115.5,n:19,nt:23,src:"R10",g:"neu",d:"14.09.",p:0.0018,dm:-18.8},
+ {k:"9er",med:114.1,p25:107.2,n:22,nt:27,src:"R10",g:"neu",d:"14.09.–23.09.",p:0.0002,dm:-14.4},
+ {k:"PW",med:105.5,p25:99.1,n:48,nt:48,src:"R10",g:"alt+neu",d:"18.08.–14.09.",p:0.1744,dm:-4.4}
 ];
 const WEDGE=[
  {k:"PW", voll:[106.5,101.8], u1030:[85.0,82.2], u9:[64.5,62.0]},
@@ -2377,10 +2384,12 @@ function renderBag(){
    <td style="color:var(--mut);font-size:10.5px">${x.src}</td></tr>`;});
  $("#bagLadder").innerHTML=h;
  /* Eisen */
- h=`<tr><th>Schläger</th><th>Median</th><th>p25</th><th>n</th><th>Messung</th></tr>`;
- sortClubs(BAG.map(b=>b.k)).map(k=>BAG.find(b=>b.k==k)).forEach(b=>{h+=`<tr><td style="font-weight:700;${b.rec?"color:var(--tracer)":""}">${b.k}${b.rec?" ●":""}</td>
+ h=`<tr><th>Schläger</th><th>Median</th><th>p25</th><th>sauber</th><th>Daten</th></tr>`;
+ sortClubs(BAG.map(b=>b.k)).map(k=>BAG.find(b=>b.k==k)).forEach(b=>{const w=b.g=="alt";
+  h+=`<tr><td style="font-weight:700">${b.k}</td>
   <td class="num" style="font-weight:700">${b.med.toFixed(1)}</td><td class="num tracerTxt">${b.p25.toFixed(1)}</td>
-  <td class="num" style="color:var(--mut)">${b.n}</td><td class="num" style="color:var(--mut);font-size:11px">${b.d||"17.–19.08."}</td></tr>`;});
+  <td class="num" style="color:var(--mut)">${b.n}/${b.nt}</td>
+  <td style="font-size:11px;line-height:1.35;color:${w?"var(--warn)":"var(--mut)"}">${w?"alter Griff ⚠":b.g=="neu"?"neuer Griff":"alt+neu"}<br><span style="color:var(--mut)">${b.d}</span></td></tr>`;});
  $("#bagIrons").innerHTML=h;
  /* Wedge-Matrix */
  h=`<tr><th></th><th>voll</th><th>10:30</th><th>9 Uhr</th></tr>`;
