@@ -160,6 +160,11 @@ canvas{width:100%;height:230px;display:block}
 .bbv .bbs{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;background:#fff}
 .bbv .bbs img{display:block;width:100%;height:auto}
 .bbv .bbs.zoom img{width:220%}
+.brand .ver{font-size:10.5px;font-weight:600;color:var(--mut);letter-spacing:.3px;margin-left:-4px;align-self:flex-end;padding-bottom:2px}
+.tsh{cursor:pointer;-webkit-user-select:none;user-select:none;white-space:nowrap}
+.tsh[data-sort="asc"]::after{content:" ▲";color:var(--tracer);font-size:.85em}
+.tsh[data-sort="desc"]::after{content:" ▼";color:var(--tracer);font-size:.85em}
+#rdList [data-sk]{cursor:pointer}
 .toast{position:fixed;left:50%;bottom:calc(var(--nav) + 16px);transform:translateX(-50%) translateY(8px);background:var(--tracer);color:#16210a;padding:11px 18px;border-radius:11px;font-weight:800;font-size:14px;opacity:0;transition:.22s;pointer-events:none;z-index:30}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -221,6 +226,7 @@ canvas{width:100%;height:230px;display:block}
   <div class="brand">
    <svg width="26" height="26" viewBox="0 0 100 100"><path d="M14 78 Q50 6 88 60" fill="none" stroke="#cdf24e" stroke-width="7" stroke-linecap="round"/><circle cx="88" cy="60" r="7" fill="#cdf24e"/></svg>
    <span>Tracer<b>.</b></span>
+   <span class="ver" id="appVerTop"></span>
   </div>
   <div style="display:flex;gap:7px">
    <button class="iconbtn" id="bExport">Schläge</button>
@@ -624,7 +630,7 @@ canvas{width:100%;height:230px;display:block}
 <div class="toast" id="toast"></div>
 
 <script>
-const APPVER="v33";
+const APPVER="v34";
 const KEY="golfTrackerV1";
 const SEEDVER="2026-07-27";
 const CLUBS=["Driver","3er","4er","5er","6er","7er","8er","9er","PW","52°","56°","58°","60°"];
@@ -761,7 +767,7 @@ function buildDirChips(){
 }
 function buildChips(){
  buildSetChips();buildDirChips();
- const clubs=[...new Set([...CLUBS,...DATA.map(d=>d.club)])];
+ const clubs=sortClubs([...new Set([...CLUBS,...DATA.map(d=>d.club)])]);
  $("#clubChips").innerHTML=clubs.map(c=>`<div class="chip ${c==cur.club?"on":""}" data-c="${c}">${c}</div>`).join("")+`<div class="chip add" id="addClub">+</div>`;
  $$("#clubChips .chip[data-c]").forEach(el=>el.onclick=()=>{cur.club=el.dataset.c;buildChips();renderHero();renderRecent();refocus();});
  $("#addClub").onclick=()=>{const n=prompt("Neuer Schläger (z.B. 4er, 60°)");if(n){cur.club=n.trim();buildChips();renderHero();}};
@@ -841,7 +847,7 @@ function renderStats(){
  const gap=(s7.length&&s9.length)?(mean(s7)-mean(s9)):null;
  const k=[["Schläge",base.length,""],["Ø Carry",c.length?mean(c).toFixed(0):"–","m"],["Top Carry",c.length?Math.max(...c):"–","m"],["Gapping 7→9",gap!=null?gap.toFixed(0):"–","m"]];
  $("#kpis").innerHTML=k.map(([l,v,u])=>`<div class="kpi"><div class="lbl">${l}</div><div class="v">${v}<small>${u?" "+u:""}</small></div></div>`).join("");
- const clubs=[...new Set(base.map(x=>x.club))];
+ const clubs=sortClubs([...new Set(base.map(x=>x.club))]);
  $("#statTbl tbody").innerHTML=clubs.map(cl=>{const a=base.filter(x=>x.club==cl).map(x=>x.carry);return `<tr><td style="color:${colFor(cl)}">${cl}</td><td>${a.length}</td><td>${mean(a).toFixed(0)}</td><td class="tracerTxt">${stock(a).toFixed(0)}</td><td>${pstd(a).toFixed(1)}</td><td>${(pstd(a)/mean(a)*100).toFixed(1)}</td><td>${Math.max(...a)-Math.min(...a)}</td></tr>`;}).join("")||'<tr><td colspan="7" class="empty">Keine Daten</td></tr>';
  const ms=[],rs=[],cs=[];clubs.forEach(cl=>{const a=base.filter(x=>x.club==cl).map(x=>x.carry);ms.push(mean(a));rs.push([Math.min(...a),Math.max(...a)]);cs.push(colFor(cl));});
  cClub($("#cClub"),clubs,ms,rs,cs);
@@ -855,7 +861,7 @@ function renderSetCompare(){
  const card=$("#cmpCard");
  if(ks.length<2){card.style.display="none";return;}
  card.style.display="";
- const clubs=[...new Set(base.map(x=>x.club))].filter(cl=>ks.some(k=>base.some(x=>x.club==cl&&setOf(x)==k)));
+ const clubs=sortClubs([...new Set(base.map(x=>x.club))]).filter(cl=>ks.some(k=>base.some(x=>x.club==cl&&setOf(x)==k)));
  clubs.sort((a,b)=>base.filter(x=>x.club==b).length-base.filter(x=>x.club==a).length);
  const grab=(cl,k)=>base.filter(x=>x.club==cl&&setOf(x)==k).map(x=>x.carry);
  $("#legCmp").innerHTML=ks.map(k=>`<span><i style="background:${setCol(k)}"></i>${setName(k)}</span>`).join("");
@@ -879,7 +885,7 @@ function renderTrend(){
  const d=DATA.filter(x=>hasC(x)&&hasS(x)&&(trend.day=="all"||x.date==trend.day)&&(trend.club=="all"||x.club==trend.club)&&(trend.set=="all"||setOf(x)==trend.set)&&(trend.swing=="all"||swingOf(x)==trend.swing)&&x.status=="clean");
  const pts=d.map(x=>({x:x.speed,y:x.carry,c:colFor(x.club),club:x.club}));
  let line=null;if(d.length>2){const r=reg(d.map(x=>x.speed),d.map(x=>x.carry));const mn=Math.min(...d.map(x=>x.speed)),mx=Math.max(...d.map(x=>x.speed));line=[{x:mn,y:r.sl*mn+r.ic},{x:mx,y:r.sl*mx+r.ic}];$("#regHint").textContent=`R²=${r.r2.toFixed(3)} · ${r.sl.toFixed(2)} m pro km/h`;}else $("#regHint").textContent="";
- const clubs=[...new Set(d.map(x=>x.club))];
+ const clubs=sortClubs([...new Set(d.map(x=>x.club))]);
  $("#legScatter").innerHTML=clubs.map(c=>`<span><i style="background:${colFor(c)}"></i>${c}</span>`).join("");
  cScatter($("#cScatter"),pts,line);
  let sq=d;if(trend.club=="all"&&d.length){const cl=[...new Set(d.map(x=>x.club))].sort((a,b)=>d.filter(x=>x.club==b).length-d.filter(x=>x.club==a).length)[0];sq=d.filter(x=>x.club==cl);}
@@ -890,14 +896,14 @@ function renderTrend(){
 }
 /* ---- list tab ---- */
 function renderList(){
- let d=DATA.filter(x=>(listF.day=="all"||x.date==listF.day)&&(listF.club=="all"||x.club==listF.club)&&(listF.set=="all"||setOf(x)==listF.set)&&(listF.swing=="all"||swingOf(x)==listF.swing)&&(listF.venue=="all"||(x.venue||"")==listF.venue)).slice().sort((a,b)=>{let x=sortK=="set"?setOf(a):a[sortK],y=sortK=="set"?setOf(b):b[sortK];if(typeof x=="string")return sortAsc?(""+x).localeCompare(y):(""+y).localeCompare(x);return sortAsc?x-y:y-x;});
+ let d=DATA.filter(x=>(listF.day=="all"||x.date==listF.day)&&(listF.club=="all"||x.club==listF.club)&&(listF.set=="all"||setOf(x)==listF.set)&&(listF.swing=="all"||swingOf(x)==listF.swing)&&(listF.venue=="all"||(x.venue||"")==listF.venue)).slice().sort((a,b)=>{if(sortK=="club"){const r=clubRank(a.club)-clubRank(b.club)||String(a.club).localeCompare(String(b.club),"de");return sortAsc?r:-r;}let x=sortK=="set"?setOf(a):a[sortK],y=sortK=="set"?setOf(b):b[sortK];if(typeof x=="string")return sortAsc?(""+x).localeCompare(y):(""+y).localeCompare(x);return sortAsc?x-y:y-x;});
  $("#countLbl").textContent=`(${d.length})`;
  $("#tbl tbody").innerHTML=d.map(r=>`<tr><td>${r.date.slice(5)}${r.bay?`<span style="color:var(--mut);font-size:11px"> B${r.bay}</span>`:""}</td><td style="color:${colFor(r.club)}">${r.club}</td><td style="color:${setCol(setOf(r))}">${setShort(setOf(r))}</td><td>${r.series||""}${swingOf(r)!=DEFSWING?` <span style="color:${swingCol(swingOf(r))};font-size:11px">${swingShort(swingOf(r))}</span>`:""}</td><td>${r.speed!=null?r.speed:"–"}</td><td>${r.carry!=null?r.carry:"–"}</td><td><span class="tag ${r.status}">${r.status=="clean"?"ok":r.status=="outlier"?"Ausr.":"raus"}</span></td><td><span class="del" data-id="${r.id}">✕</span></td></tr>`).join("")||'<tr><td colspan="8" class="empty">Noch keine Schläge</td></tr>';
  $$("#tbl .del").forEach(e=>e.onclick=()=>delShot(e.dataset.id));
 }
 function syncOpts(){
  const days=[...new Set(DATA.map(d=>d.date))].sort().reverse();
- const clubs=[...new Set(DATA.map(d=>d.club))];
+ const clubs=sortClubs([...new Set(DATA.map(d=>d.club))]);
  const dOpt='<option value="all">Alle Tage</option>'+days.map(d=>`<option value="${d}">${d}</option>`).join("");
  const cOpt='<option value="all">Alle Schläger</option>'+clubs.map(c=>`<option value="${c}">${c}</option>`).join("");
  ["#sDay","#tDay","#lDay"].forEach(s=>{const v=$(s).value;$(s).innerHTML=dOpt;$(s).value=v||"all";});
@@ -1207,7 +1213,7 @@ function renderDir(){
    ["weit daneben",share(x=>Math.abs(dirW(x.dir))==2),"%"],
    ["Tendenz",(tend>0?"+":"")+tend.toFixed(2),""]]
    .map(([l,v,u])=>`<div class="kpi"><div class="lbl">${l}</div><div class="v">${v}<small>${u?" "+u:""}</small></div></div>`).join("");
- const clubs=[...new Set(wd.map(x=>x.club))];
+ const clubs=sortClubs([...new Set(wd.map(x=>x.club))]);
  $("#dirTbl tbody").innerHTML=clubs.map(cl=>{
   const a2=wd.filter(x=>x.club==cl),tot=base.filter(x=>x.club==cl).length;
   const p=k=>(100*a2.filter(x=>x.dir==k).length/a2.length).toFixed(0);
@@ -1229,7 +1235,7 @@ function renderR10(){
  const cards=["#r10Card","#r10PatCard","#r10PathCard"];
  if(!all.length){cards.forEach(c=>$(c).style.display="none");return;}
  cards.forEach(c=>$(c).style.display="");
- const clubs=[...new Set(all.map(x=>x.club))];
+ const clubs=sortClubs([...new Set(all.map(x=>x.club))]);
  const sel=$("#r10Club");
  if(sel.options.length!=clubs.length+1||![...sel.options].slice(1).every((o,i)=>o.value==clubs[i]))
   sel.innerHTML='<option value="all">Alle Schläger</option>'+clubs.map(c=>`<option value="${c}">${c}</option>`).join("");
@@ -1512,13 +1518,16 @@ function renderRdHome(){
    +(rdHi()?`<br>${chHintTxt()}`:`<br><span style="color:var(--warn)">Handicap Index eintragen, dann schlage ich die Vorgabe vor.</span>`):"";
  $$("#rdNewBallSeg .seg").forEach(e=>e.classList.toggle("on",+e.dataset.nb==rdNewBalls));
  /* Rundenliste */
- const L=ROUNDS.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.id>a.id?1:-1));
- const head=`<div class="rdrow" style="border:none;padding-bottom:2px;cursor:default"><span class="rdd lbl">Datum</span><span class="rdn lbl">Platz</span><span class="rds lbl">Schl</span><span class="rdp lbl" style="color:var(--mut)">Pkt</span></div>`;
+ const rkey=r=>{const S=rdSummary(r,1);return rdLSort.k=="date"?(r.date||""):rdLSort.k=="name"?((r.courseName||"")+(r.tee||"")).toLowerCase():rdLSort.k=="s"?(S.schlaege||0):(S.punkte||0);};
+ const L=ROUNDS.slice().sort((a,b)=>{const x=rkey(a),y=rkey(b);const d=(typeof x=="string")?x.localeCompare(y,"de"):(x-y);return (d||(a.date||"").localeCompare(b.date||""))*rdLSort.dir;});
+ const arw=k=>rdLSort.k==k?(rdLSort.dir>0?" ▲":" ▼"):"";
+ const head=`<div class="rdrow" style="border:none;padding-bottom:2px;cursor:default"><span class="rdd lbl" data-sk="date">Datum${arw("date")}</span><span class="rdn lbl" data-sk="name">Platz${arw("name")}</span><span class="rds lbl" data-sk="s">Schl${arw("s")}</span><span class="rdp lbl" style="color:var(--mut)" data-sk="p">Pkt${arw("p")}</span></div>`;
  $("#rdList").innerHTML=L.length?head+L.map(r=>{const nb=nBalls(r),S=rdSummary(r,1),S2=nb==2?rdSummary(r,2):null;
   return `<div class="rdrow" data-r="${r.id}"><span class="rdd num">${(r.date||"").slice(8,10)}.${(r.date||"").slice(5,7)}.${(r.date||"").slice(2,4)}</span>
    <span class="rdn">${r.courseName||""}${r.tee?" · "+r.tee:""}${nb==2?` <span style="opacity:.55;font-weight:600">· 2 Bälle</span>`:""}</span>
    <span class="rds num">${nb==2?(S.schlaege||"–")+"/"+(S2.schlaege||"–"):(S.schlaege||"–")}</span><span class="rdp num"${nb==2?` style="font-size:15px"`:""}>${nb==2?S.punkte+"/"+S2.punkte:S.punkte}</span></div>`;}).join(""):`<div class="hint">Noch keine Runde erfasst.</div>`;
  $$("#rdList .rdrow[data-r]").forEach(el=>el.onclick=()=>{rdDetailId=el.dataset.r;rdShow("detail");});
+ $$("#rdList [data-sk]").forEach(el=>el.onclick=()=>{const k=el.dataset.sk;rdLSort=(rdLSort.k==k)?{k:k,dir:-rdLSort.dir}:{k:k,dir:(k=="name"?1:-1)};renderRdHome();});
  /* Platzliste */
  $("#rdCourseList").innerHTML=COURSES.map(c=>`<div class="rdrow" data-ce="${c.id}"><span class="rdn">${c.name}${c.tee?" · "+c.tee:""}</span><span class="rds num">${c.holes.length} L</span><span class="rds num">Par ${c.holes.reduce((a,h)=>a+h.par,0)}</span></div>`).join("");
  $$("#rdCourseList .rdrow").forEach(el=>el.onclick=()=>{rdEditId=el.dataset.ce;rdShow("edit");});
@@ -1785,6 +1794,93 @@ function renderBBStore(){
 async function bbRemove(id){ if(!confirm("Birdiebook-Bilder von diesem Gerät löschen?"))return;
  await bbDel(id).catch(()=>{}); try{ localStorage.removeItem(BB_FLAG(id)); }catch(e){}
  renderBBStore(); toast("Bilder gelöscht"); }
+
+/* --- v34: Schlaeger in Bag-Reihenfolge + sortierbare Tabellenspalten ------
+   clubRank: Driver, Hoelzer (3W), Hybride (4H), Eisen (3er/4I/Eisen 4), PW,
+   Wedges nach Loft (50/52/56/60 Grad), Putter. Unbekannte Namen ans Ende. */
+function clubRank(n){ const s=String(n||"").toLowerCase().trim(); let m;
+ if(!s) return 999;
+ if(/driver|^dr\b|^1w\b/.test(s)) return 0;
+ if((m=s.match(/^(\d+)\s*w\b/))||(m=s.match(/holz\s*(\d+)/))||(m=s.match(/(\d+)\s*-?\s*wood/))) return 10+(+m[1]);
+ if((m=s.match(/^(\d+)\s*h\b/))||(m=s.match(/hybrid\s*(\d+)/))||(m=s.match(/(\d+)\s*-?\s*hybrid/))) return 20+(+m[1]);
+ if((m=s.match(/^(\d+)\s*(er|i)\b/))||(m=s.match(/eisen\s*(\d+)/))||(m=s.match(/(\d+)\s*-?\s*iron/))) return 30+(+m[1]);
+ if(/^pw\b|pitching/.test(s)) return 40;
+ if((m=s.match(/(\d{2})\s*°/))) return 40+((+m[1])-44)/2;
+ if(/^gw\b|^aw\b|gap/.test(s)) return 43;
+ if(/^sw\b|sand/.test(s)) return 46;
+ if(/^lw\b|lob/.test(s)) return 48;
+ if(/putter/.test(s)) return 90;
+ return 500; }
+function sortClubs(a){ return a.slice().sort((x,y)=>clubRank(x)-clubRank(y)||String(x).localeCompare(String(y),"de")); }
+
+/* Generischer Tabellen-Sortierer: Klick auf eine Spaltenueberschrift sortiert
+   auf-, dann absteigend, dann zurueck zur Originalreihenfolge. Spaltentyp wird
+   erkannt (Schlaeger, Datum, Zahl, Text); leere Werte immer ans Ende.
+   Summenzeilen (Σ, Out, In, Total) bleiben unten; Hinweiszeilen (colspan)
+   werden waehrend einer Sortierung ausgeblendet. Ausgenommen: Eingabetabellen
+   und die Schlagliste (#tbl, eigene Sortierung). */
+const TSORT={}; let tsBusy=false;
+function tsHeadRow(t){ let h=null;
+ for(const r of t.rows){ const c=[...r.cells]; if(!c.length) continue;
+  const isH=r.parentElement.tagName=="THEAD"||c.every(x=>x.tagName=="TH")||r.classList.contains("lbl");
+  if(isH) h=r; else if(h) break; }
+ return h; }
+function tsEligible(t){ if(!t||t.id=="tbl"||t.id=="rdTbl"||t.id=="ceTbl") return false;
+ if(t.querySelector("input,select,textarea,button")) return false; return !!tsHeadRow(t); }
+function tsKey(t,h){ return t.id||("t:"+[...h.cells].map(c=>c.textContent.trim()).join("|")); }
+const TS_PIN=/^(Σ|Summe|Total|TOTAL|Gesamt|OUT|IN|Out|In)$/;
+function tsRows(t,h){ const all=[...t.rows]; const i=all.indexOf(h); const out=[];
+ all.slice(i+1).forEach(r=>{ const c=[...r.cells]; if(!c.length) return;
+  const k=(c.length==1&&c[0].colSpan>1)?"note":(TS_PIN.test((c[0].textContent||"").trim())?"pin":"row");
+  out.push({r:r,k:k}); });
+ return out; }
+function tsVal(txt){ const s=(txt||"").replace(/\s+/g," ").trim(); if(!s||/^[–—-]$/.test(s)) return null; return s; }
+function tsDate(s){ let m=s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})?/); if(m) return (m[3]?(+m[3]%100):0)*10000+(+m[2])*100+(+m[1]);
+ m=s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return (+m[1]%100)*10000+(+m[2])*100+(+m[3]); return null; }
+function tsNum(s){ const m=s.replace(/[−–]/g,"-").match(/-?\d+(?:[.,]\d+)?/); return m?parseFloat(m[0].replace(",",".")):null; }
+function tsType(vals,headTxt){ const v=vals.filter(x=>x!=null); if(!v.length) return "text";
+ if(/schläger|club/i.test(headTxt)||v.filter(x=>clubRank(x)<500).length>=Math.max(1,0.6*v.length)) return "club";
+ if(v.filter(x=>tsDate(x)!=null).length>=0.7*v.length) return "date";
+ if(v.filter(x=>tsNum(x)!=null).length>=0.7*v.length) return "num";
+ return "text"; }
+function tsApply(t){ const h=tsHeadRow(t); if(!h) return; const st=TSORT[tsKey(t,h)];
+ const rows=tsRows(t,h); rows.forEach((o,i)=>{ if(o.r.dataset.oi==null) o.r.dataset.oi=i; });
+ [...h.cells].forEach((c,i)=>{ c.classList.add("tsh"); if(st&&st.dir&&st.c==i) c.dataset.sort=st.dir>0?"asc":"desc"; else delete c.dataset.sort; });
+ const body=rows.length?rows[0].r.parentElement:null; if(!body) return;
+ tsBusy=true;
+ const byOi=(a,b)=>(+a.r.dataset.oi)-(+b.r.dataset.oi);
+ if(!st||!st.dir){ rows.slice().sort(byOi).forEach(o=>{ o.r.style.display=""; body.appendChild(o.r); }); tsBusy=false; return; }
+ const data=rows.filter(o=>o.k=="row");
+ const lastRowOi=Math.max(-1,...data.map(o=>+o.r.dataset.oi));
+ const vals=data.map(o=>tsVal(o.r.cells[st.c]&&o.r.cells[st.c].textContent));
+ const typ=tsType(vals,(h.cells[st.c]&&h.cells[st.c].textContent)||"");
+ const key=v=>v==null?null:(typ=="club"?clubRank(v):typ=="date"?tsDate(v):typ=="num"?tsNum(v):v.toLowerCase());
+ const arr=data.map((o,i)=>({o:o,v:key(vals[i])}));
+ arr.sort((a,b)=>{ if(a.v==null&&b.v==null) return byOi(a.o,b.o); if(a.v==null) return 1; if(b.v==null) return -1;
+  let d=(typ=="text")?String(a.v).localeCompare(String(b.v),"de"):(a.v-b.v);
+  if(typ=="club"&&d==0) d=String(vals[data.indexOf(a.o)]).localeCompare(String(vals[data.indexOf(b.o)]),"de");
+  return d?d*st.dir:byOi(a.o,b.o); });
+ arr.forEach(x=>{ x.o.r.style.display=""; body.appendChild(x.o.r); });
+ rows.filter(o=>o.k!="row").sort(byOi).forEach(o=>{
+  const trailing=(+o.r.dataset.oi)>lastRowOi;
+  o.r.style.display=(o.k=="note"&&!trailing)?"none":""; body.appendChild(o.r); });
+ tsBusy=false; }
+document.addEventListener("click",e=>{ const cell=e.target.closest&&e.target.closest("th,td"); if(!cell) return;
+ const t=cell.closest("table"); if(!tsEligible(t)) return; const h=tsHeadRow(t); if(cell.parentElement!==h) return;
+ e.stopPropagation(); e.preventDefault();
+ const k=tsKey(t,h), i=cell.cellIndex, st=TSORT[k];
+ TSORT[k]=(!st||st.c!=i)?{c:i,dir:1}:{c:i,dir:st.dir==1?-1:(st.dir==-1?0:1)};
+ tsApply(t); },true);
+function tsScan(root){ (root&&root.querySelectorAll?[...root.querySelectorAll("table")]:[]).concat(root&&root.tagName=="TABLE"?[root]:[])
+  .forEach(t=>{ if(tsEligible(t)) tsApply(t); }); }
+new MutationObserver(ms=>{ if(tsBusy) return; const seen=new Set();
+ const own=n=>n.nodeType!=1||(n.tagName=="TR"&&n.dataset.oi!=null);
+ ms.forEach(m=>{ if([...m.addedNodes].every(own)&&[...m.removedNodes].every(own)) return;
+  const t=m.target.closest?m.target.closest("table"):null; if(t) seen.add(t);
+  m.addedNodes.forEach(n=>{ if(n.nodeType==1){ if(n.tagName=="TABLE") seen.add(n); else n.querySelectorAll&&n.querySelectorAll("table").forEach(x=>seen.add(x)); } }); });
+ seen.forEach(t=>{ if(tsEligible(t)) tsApply(t); }); }).observe(document.body,{childList:true,subtree:true});
+setTimeout(()=>tsScan(document.body),0);
+let rdLSort={k:"date",dir:-1};
 
 /* --- Runde starten --- */
 function rdStartRound(){
@@ -2107,7 +2203,7 @@ function renderBag(){
  $("#bagLadder").innerHTML=h;
  /* Eisen */
  h=`<tr><th>Schläger</th><th>Median</th><th>p25</th><th>n</th></tr>`;
- BAG.forEach(b=>{h+=`<tr><td style="font-weight:700;${b.rec?"color:var(--tracer)":""}">${b.k}${b.rec?" ●":""}</td>
+ sortClubs(BAG.map(b=>b.k)).map(k=>BAG.find(b=>b.k==k)).forEach(b=>{h+=`<tr><td style="font-weight:700;${b.rec?"color:var(--tracer)":""}">${b.k}${b.rec?" ●":""}</td>
   <td class="num" style="font-weight:700">${b.med.toFixed(1)}</td><td class="num tracerTxt">${b.p25.toFixed(1)}</td>
   <td class="num" style="color:var(--mut)">${b.n}</td></tr>`;});
  $("#bagIrons").innerHTML=h;
@@ -2321,6 +2417,7 @@ impSyncUndo();
 let rt;window.addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(()=>show(activeView),150);});
 
 if($("#appVer"))$("#appVer").textContent="Tracer "+APPVER;
+if($("#appVerTop"))$("#appVerTop").textContent=APPVER;
 buildChips();syncOpts();renderHero();renderRecent();renderPlan();renderPlanStrip();
 if(_migrated!==false)toast("Auf eingebaute "+DATA.length+" Schläge aktualisiert (alter Stand gesichert)");
 if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
