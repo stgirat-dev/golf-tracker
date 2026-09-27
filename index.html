@@ -142,6 +142,18 @@ canvas{width:100%;height:230px;display:block}
 .nav button{flex:1;background:none;border:none;color:var(--mut);font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;padding-top:8px}
 .nav button.on{color:var(--tracer)}
 .nav svg{width:23px;height:23px}
+.xrow{margin-top:12px}
+.xrow .inlbl{text-align:left;margin-bottom:5px}
+.xchips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.xchips::-webkit-scrollbar{display:none}
+.xc{flex:0 0 auto;background:var(--s2);border:1px solid var(--line);border-radius:999px;padding:8px 10px;font-size:13px;font-weight:600;color:var(--mut);cursor:pointer;touch-action:manipulation;user-select:none}
+.xc.on{border-color:var(--tracer);color:var(--tracer)}
+.xc.bad{border-color:var(--bad);color:var(--bad)}
+.seg.bw1.on{border-color:var(--warn);color:var(--warn)}
+.seg.bw2.on{border-color:var(--bad);color:var(--bad)}
+.csel{background:var(--s2);color:var(--ink);border:1px solid var(--line);border-radius:6px;font-size:13px;padding:4px 1px;max-width:74px}
+.pcc{font-size:10.5px;color:var(--bad);font-weight:700;margin-left:2px}
+.bakban{border-color:var(--warn)!important}
 .mdlbg{position:fixed;inset:0;background:rgba(0,0,0,.74);z-index:40;display:none;align-items:center;justify-content:center;padding:18px}
 .mdlbg.on{display:flex}
 .mdl{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);padding:17px;max-width:420px;width:100%;max-height:86vh;overflow:auto}
@@ -423,6 +435,7 @@ canvas{width:100%;height:230px;display:block}
 
   <!-- Start / Liste -->
   <div id="rdHome">
+   <div class="card bakban" id="bakBan" style="display:none"></div>
    <div class="card">
     <div class="lbl" style="margin-bottom:9px">Neue Runde</div>
     <div class="chips" id="rdCourseChips"></div>
@@ -447,6 +460,8 @@ canvas{width:100%;height:230px;display:block}
 
    <div class="card" id="rdTheo"></div>
 
+   <div class="card" id="rdPenA" style="display:none"></div>
+
    <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
      <div class="lbl">Gespielte Runden</div>
@@ -465,9 +480,13 @@ canvas{width:100%;height:230px;display:block}
    <div class="card">
     <div class="lbl" style="margin-bottom:9px">Runden sichern</div>
     <div style="display:flex;gap:8px">
-     <button class="go" id="rdExport" style="flex:1;padding:11px">Runden exportieren</button>
+     <button class="go" id="rdExport" style="flex:1;padding:11px">Herunterladen</button>
+     <button class="go" id="rdShare" style="flex:1;padding:11px">Teilen / Drive</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
      <label class="go" style="flex:1;padding:11px;text-align:center;margin:0">Runden importieren<input type="file" id="rdImport" accept=".json,application/json" hidden></label>
     </div>
+    <div class="hint" id="bakInfo" style="margin-top:8px"></div>
     <button class="go" id="rdUndo" style="display:none;width:100%;padding:11px;margin-top:8px;border-color:var(--warn);color:var(--warn);touch-action:manipulation">Letzten Import rückgängig machen</button>
     <div class="hint" id="rdUndoInfo" style="display:none;margin-top:6px"></div>
    </div>
@@ -514,6 +533,7 @@ canvas{width:100%;height:230px;display:block}
     <button class="go" id="rdPrev" style="flex:1;padding:14px;font-size:15px">Zurück</button>
     <button class="go" id="rdNext" style="flex:2;padding:14px;font-size:15px;border-color:var(--tracer);color:var(--tracer)">Weiter</button>
    </div>
+   <div class="card" id="rdXc" style="padding-top:4px"><div id="rdX"></div></div>
    <div class="rdbtns" style="grid-template-columns:1fr 1fr 1fr 1fr">
     <button class="go" id="rdToBag" style="border-color:var(--sky);color:var(--sky)">Weiten</button>
     <button class="go" id="rdToTable">Tabelle</button>
@@ -564,7 +584,7 @@ canvas{width:100%;height:230px;display:block}
    <div class="card">
     <div class="lbl" style="margin-bottom:2px">Eisen und Driver</div>
     <div class="scroll"><table class="tbl cmp" id="bagIrons"></table></div>
-    <div class="hint">Garmin R10, 17.–19.08.2026, gemessener Ballflug. <span class="tracerTxt">Grün</span> = die vier Schläger mit trennenden Nachbarn.</div>
+    <div class="hint">Garmin R10, gemessener Ballflug. Eisen und Driver Srixon: 17.–19.08.2026, noch mit dem alten Griff (vor dem Hammer-Grip). Driver Qi: 23.09.2026, alle 47 Schläge inklusive Fehlschläge — deshalb liegt p25 deutlich unter dem Median. <span class="tracerTxt">Grün</span> = die vier Schläger mit trennenden Nachbarn.</div>
    </div>
 
    <div class="card">
@@ -625,12 +645,19 @@ canvas{width:100%;height:230px;display:block}
 <button class="go dgr" id="impRepl">Alles ersetzen</button>
 <button class="go" id="impCancel">Abbrechen</button>
 </div></div>
+<div class="mdlbg" id="bakBg"><div class="mdl">
+<h3 id="bakTitle">Runden sichern</h3>
+<p id="bakTxt"></p>
+<button class="go pri" id="bakShare">Teilen (z. B. Google Drive)</button>
+<button class="go" id="bakDl">Aufs Handy herunterladen</button>
+<button class="go" id="bakLater">Später</button>
+</div></div>
 <div class="bbv" id="bbView"><div class="bbh"><b id="bbvTitle">Loch</b><button class="go" id="bbvPlan">Plan</button><button class="go" id="bbvGruen">Grün</button><button class="go" id="bbvZoom">Zoom</button><button class="go" id="bbvClose">✕</button></div><div class="bbs" id="bbvScroll"><img id="bbvImg" alt=""></div></div>
 <input type="file" id="bbFile" accept="application/pdf,.pdf" hidden>
 <div class="toast" id="toast"></div>
 
 <script>
-const APPVER="v34";
+const APPVER="v35";
 const KEY="golfTrackerV1";
 const SEEDVER="2026-07-27";
 const CLUBS=["Driver","3er","4er","5er","6er","7er","8er","9er","PW","52°","56°","58°","60°"];
@@ -1532,6 +1559,8 @@ function renderRdHome(){
  $("#rdCourseList").innerHTML=COURSES.map(c=>`<div class="rdrow" data-ce="${c.id}"><span class="rdn">${c.name}${c.tee?" · "+c.tee:""}</span><span class="rds num">${c.holes.length} L</span><span class="rds num">Par ${c.holes.reduce((a,h)=>a+h.par,0)}</span></div>`).join("");
  $$("#rdCourseList .rdrow").forEach(el=>el.onclick=()=>{rdEditId=el.dataset.ce;rdShow("edit");});
  renderTheo();
+ renderPenA();
+ bakSync();
  renderBBStore();
 }
 
@@ -1798,6 +1827,138 @@ async function bbRemove(id){ if(!confirm("Birdiebook-Bilder von diesem Gerät l�
 /* --- v34: Schlaeger in Bag-Reihenfolge + sortierbare Tabellenspalten ------
    clubRank: Driver, Hoelzer (3W), Hybride (4H), Eisen (3er/4I/Eisen 4), PW,
    Wedges nach Loft (50/52/56/60 Grad), Putter. Unbekannte Namen ans Ende. */
+/* ===================== v35: Strafursache, Abschlag, Körper, Backup ===================== */
+const TEE_CLUBS=["Driver","4er","5er","6er","7er","8er","9er","PW","52°","56°"];
+const PEN_C=[["W","Wasser"],["A","Aus"],["V","Verloren"],["U","Unspielbar"]];
+const PEN_N={W:"Wasser",A:"Aus",V:"Verloren",U:"Unspielbar","?":"ohne Angabe"};
+const BW_N=["ok","leicht","stark"];
+const BW_ORT=["Nacken","Rücken","Schulter","anderes"];
+function pcSync(e){ if(!e)return; const n=+e.pen||0; const a=Array.isArray(e.pc)?e.pc.slice(0,n):[];
+ while(a.length<n)a.push("?"); if(n)e.pc=a; else delete e.pc; }
+function bwRound(r){ return !!(r&&r.holes&&r.holes.some(e=>e.bw!=null)); }
+function rdCurE(){ const h=rdHolesOf(rdCur)[rdHole]; return rdCur.holes.find(x=>x.n==h.n); }
+function renderRdX(){ const box=$("#rdX"); if(!box)return;
+ if(!rdCur||nBalls(rdCur)==2){box.innerHTML="";$("#rdXc").style.display="none";return;} $("#rdXc").style.display="";
+ const e=rdCurE(); pcSync(e);
+ const cnt=k=>(e.pc||[]).filter(x=>x==k).length, unk=cnt("?");
+ box.innerHTML=`<div class="xrow"><div class="inlbl">Abschlag mit</div><div class="xchips">${TEE_CLUBS.map(c=>`<div class="xc ${e.tc==c?"on":""}" data-tc="${c}">${c}</div>`).join("")}</div></div>
+  <div class="xrow"><div class="inlbl">Strafschlag wegen <span style="opacity:.65">· tippen = +1 Strafschlag, − oben nimmt den letzten zurück</span></div>
+   <div class="xchips">${PEN_C.map(p=>`<div class="xc ${cnt(p[0])?"bad":""}" data-pc="${p[0]}">${p[1]}${cnt(p[0])?" ×"+cnt(p[0]):""}</div>`).join("")}</div>
+   ${unk?`<div class="hint" style="margin-top:5px;color:var(--warn)">${unk} Strafschl${unk==1?"ag":"äge"} ohne Ursache – Ursache antippen</div>`:""}</div>
+  <div class="xrow"><div class="inlbl">Körper <span style="opacity:.65">· wird aufs nächste Loch übernommen</span></div>
+   <div class="statusrow" style="margin-top:0">${BW_N.map((l,i)=>`<div class="seg ${i?"bw"+i:""} ${e.bw!=null&&+e.bw==i?"on":""}" data-bw="${i}">${l}</div>`).join("")}</div>
+   ${(+e.bw>0)?`<div class="xchips" style="margin-top:7px">${BW_ORT.map(o=>`<div class="xc ${(rdCur.bwOrt||[]).includes(o)?"on":""}" data-bo="${o}">${o}</div>`).join("")}</div>`:""}</div>`;
+ $$("#rdX [data-tc]").forEach(el=>el.onclick=()=>{const x=rdCurE(); if(x.tc==el.dataset.tc)delete x.tc; else x.tc=el.dataset.tc; rdCurSave(); renderRdX();});
+ $$("#rdX [data-pc]").forEach(el=>el.onclick=()=>rdPenCause(el.dataset.pc));
+ $$("#rdX [data-bw]").forEach(el=>el.onclick=()=>{const x=rdCurE(), v=+el.dataset.bw; x.bw=v; rdCurSave(); renderRdX();});
+ $$("#rdX [data-bo]").forEach(el=>el.onclick=()=>{const o=el.dataset.bo, a=rdCur.bwOrt||[];
+  rdCur.bwOrt=a.includes(o)?a.filter(y=>y!=o):a.concat([o]); if(!rdCur.bwOrt.length)delete rdCur.bwOrt; rdCurSave(); renderRdX();});
+}
+function rdPenCause(k){ if(!rdCur)return; const e=rdCurE(); pcSync(e);
+ const i=(e.pc||[]).indexOf("?");
+ if(i>=0) e.pc[i]=k;
+ else { e.pen=Math.min(30,(+e.pen||0)+1); if((+e.s||0)<e.pen)e.s=e.pen; pcSync(e); e.pc[e.pc.length-1]=k; }
+ rdCurSave(); renderRdPlay(); toast(PEN_N[k]+" · Strafschlag erfasst"); }
+/* Tabellen-Selects */
+function xSel(hn,f,i,val,opts){ return `<select class="csel" data-h="${hn}" data-x="${f}"${i!=null?` data-i="${i}"`:""}>`
+ +opts.map(o=>`<option value="${o[0]}"${String(o[0])===String(val)?" selected":""}>${o[1]}</option>`).join("")+`</select>`; }
+function pcCellInner(e){ const n=+e.pen||0; if(!n)return `<span style="color:var(--mut)">–</span>`;
+ return (e.pc||[]).map((c,i)=>xSel(e.n,"pc",i,c,[["?","?"],["W","Wasser"],["A","Aus"],["V","Verloren"],["U","Unspielbar"]])).join(" "); }
+function xSelBind(root){ if(!root)return; root.querySelectorAll("select.csel").forEach(sel=>sel.onchange=()=>{
+ const e=rdCur.holes.find(x=>x.n==+sel.dataset.h); if(!e)return; const f=sel.dataset.x, v=sel.value;
+ if(f=="tc"){ if(v)e.tc=v; else delete e.tc; }
+ else if(f=="bw"){ if(v==="")delete e.bw; else e.bw=+v; }
+ else if(f=="pc"){ pcSync(e); const i=+sel.dataset.i; if(e.pc&&i<e.pc.length)e.pc[i]=v; }
+ rdCurSave(); }); }
+
+/* Auswertung Strafen / Abschlag / Körper */
+function penHoles(){ const out=[];
+ ROUNDS.forEach(r=>{ const S=rdSummary(r,1), BWR=bwRound(r);
+  S.rows.forEach(x=>{ if(!x.s)return; const e=r.holes.find(y=>y.n==x.n)||{};
+   const pc=[]; for(let i=0;i<x.pen;i++) pc.push(Array.isArray(e.pc)&&e.pc[i]?e.pc[i]:"?");
+   out.push({rid:r.id,cid:r.courseId,cn:r.courseName||"",n:x.n,par:x.par,pen:x.pen,pts:x.pts,over:x.s-x.net,tc:e.tc||null,pc:pc,
+    bw:BWR?(e.bw==null?0:+e.bw):null}); }); });
+ return out; }
+function corr(xs,ys){ const n=xs.length; if(n<3)return null; const mx=mean(xs),my=mean(ys); let a=0,b=0,c=0;
+ for(let i=0;i<n;i++){a+=(xs[i]-mx)*(ys[i]-my);b+=(xs[i]-mx)**2;c+=(ys[i]-my)**2;}
+ return (b&&c)?{r:a/Math.sqrt(b*c),sl:a/b,n:n}:null; }
+function renderPenA(){ const box=$("#rdPenA"); if(!box)return;
+ const H=penHoles(); if(!H.length){box.style.display="none";return;} box.style.display="";
+ const f1=v=>(Math.round(v*10)/10).toFixed(1), f2=v=>(Math.round(v*100)/100).toFixed(2);
+ const penT=H.reduce((a,x)=>a+x.pen,0);
+ /* je Runde: Strafen und Punkte pro 9 Loch */
+ const per={}; H.forEach(x=>{const p=per[x.rid]||(per[x.rid]={n:0,pen:0,pts:0}); p.n++; p.pen+=x.pen; p.pts+=x.pts;});
+ const R=Object.values(per).filter(p=>p.n>=9);
+ const C=corr(R.map(p=>9*p.pen/p.n),R.map(p=>9*p.pts/p.n));
+ let h=`<div class="lbl" style="margin-bottom:6px">Strafschläge · wo, warum, womit</div>
+  <div class="rdnote"><b>${penT} Strafschläge</b> auf ${H.length} gespielten Löchern (${f2(penT/H.length)} pro Loch).`
+  +(C&&C.n>=4?` Über ${C.n} Runden: r = ${f2(C.r)} zwischen Strafen und Punkten; jeder Strafschlag pro 9 Loch kostet im Mittel <b>${f1(-C.sl)} Punkte</b>.`:"")+`</div>`;
+ /* Ursachen */
+ const cc={}; H.forEach(x=>x.pc.forEach(c=>cc[c]=(cc[c]||0)+1));
+ const ck=["W","A","V","U","?"].filter(k=>cc[k]);
+ if(ck.length){ h+=`<div class="scroll"><table class="tbl cmp" style="margin-top:8px"><tr><th>Ursache</th><th>Strafschläge</th><th>Anteil</th></tr>`
+  +ck.map(k=>`<tr><td style="${k=="?"?"color:var(--mut)":""}">${PEN_N[k]}</td><td class="num">${cc[k]}</td><td class="num">${Math.round(100*cc[k]/penT)} %</td></tr>`).join("")+`</table></div>`;
+  if(cc["?"])h+=`<div class="hint">„ohne Angabe“: Runden vor v35 oder Strafschläge ohne angetippte Ursache.</div>`; }
+ /* Abschlagschläger (Par 4/5) */
+ const T=H.filter(x=>x.tc&&x.par>=4);
+ if(T.length){ const g={}; T.forEach(x=>{const o=g[x.tc]||(g[x.tc]={n:0,pen:0,hp:0,pts:0}); o.n++; o.pen+=x.pen; o.hp+=x.pen?1:0; o.pts+=x.pts;});
+  h+=`<div class="lbl" style="margin:12px 0 2px">Abschlag auf Par 4/5</div><div class="scroll"><table class="tbl cmp"><tr><th>Schläger</th><th>Löcher</th><th>mit Strafe</th><th>Strafen/Loch</th><th>Ø Pkt</th></tr>`
+  +sortClubs(Object.keys(g)).map(k=>{const o=g[k];return `<tr><td style="font-weight:700">${k}</td><td class="num">${o.n}</td><td class="num">${Math.round(100*o.hp/o.n)} %</td><td class="num" style="color:${o.pen?"var(--bad)":"inherit"}">${f2(o.pen/o.n)}</td><td class="num" style="font-weight:800">${f2(o.pts/o.n)}</td></tr>`;}).join("")
+  +`</table></div>`+(T.length<20?`<div class="hint">Erst ${T.length} Löcher mit Abschlagschläger – Unterschiede sind noch nicht belastbar.</div>`:""); }
+ else h+=`<div class="hint" style="margin-top:8px">Abschlagschläger: ab der nächsten Runde im Live-Modus antippen, dann erscheint hier der Vergleich Driver gegen Eisen.</div>`;
+ /* teuerste Löcher */
+ const L={}; H.forEach(x=>{const k=x.cid+":"+x.n, o=L[k]||(L[k]={cid:x.cid,cn:x.cn,n:x.n,g:0,pen:0,pts:0}); o.g++; o.pen+=x.pen; o.pts+=x.pts;});
+ const top=Object.values(L).filter(o=>o.pen>0).sort((a,b)=>b.pen-a.pen||b.pen/b.g-a.pen/a.g).slice(0,6);
+ if(top.length){ h+=`<div class="lbl" style="margin:12px 0 2px">Teuerste Löcher</div><div class="scroll"><table class="tbl cmp"><tr><th>Loch</th><th>gespielt</th><th>Strafen</th><th>pro Runde</th><th>Ø Pkt</th></tr>`
+  +top.map(o=>{const bb=(typeof BIRDIE!="undefined"&&BIRDIE[o.cid]&&BIRDIE[o.cid][o.n]&&BIRDIE[o.cid][o.n].x&&BIRDIE[o.cid][o.n].x[0])||"";
+   return `<tr><td style="font-weight:700">${o.cn.replace(/^Golf\s+/,"")} ${o.n}${bb?`<br><span style="color:var(--mut);font-weight:400;font-size:10.5px">${bb}</span>`:""}</td><td class="num">${o.g}</td><td class="num" style="color:var(--bad)">${o.pen}</td><td class="num">${f1(o.pen/o.g)}</td><td class="num" style="font-weight:800">${f1(o.pts/o.g)}</td></tr>`;}).join("")+`</table></div>`; }
+ /* Körper */
+ const B=H.filter(x=>x.bw!=null);
+ if(B.length){ const g=[0,1,2].map(i=>{const a=B.filter(x=>x.bw==i);return {n:a.length,pts:a.reduce((s,x)=>s+x.pts,0),ov:a.reduce((s,x)=>s+x.over,0),pen:a.reduce((s,x)=>s+x.pen,0)};});
+  h+=`<div class="lbl" style="margin:12px 0 2px">Körper und Punkte</div><div class="scroll"><table class="tbl cmp"><tr><th>Zustand</th><th>Löcher</th><th>Ø Pkt</th><th>Ø über Netto-Par</th><th>Strafen/Loch</th></tr>`
+  +g.map((o,i)=>o.n?`<tr><td style="color:${i==2?"var(--bad)":i==1?"var(--warn)":"inherit"};font-weight:700">${BW_N[i]}</td><td class="num">${o.n}</td><td class="num" style="font-weight:800">${f2(o.pts/o.n)}</td><td class="num">${o.ov/o.n>=0?"+":""}${f1(o.ov/o.n)}</td><td class="num">${f2(o.pen/o.n)}</td></tr>`:"").join("")
+  +`</table></div><div class="hint">Nur Runden, in denen „Körper“ mindestens einmal erfasst wurde; Löcher davor ohne Eintrag zählen als ok.</div>`; }
+ else h+=`<div class="hint" style="margin-top:8px">Körper: im Live-Modus „leicht“ oder „stark“ antippen, sobald Nacken oder Rücken sich melden. Für die Turnierrunde vom 26.09. lässt es sich in der Tabelle nachtragen.</div>`;
+ box.innerHTML=h; }
+
+/* Backup */
+const BAKKEY=KEY+"_lastBak";
+function hsh(t){ let h=5381; for(let i=0;i<t.length;i++)h=((h<<5)+h+t.charCodeAt(i))|0; return (h>>>0).toString(36); }
+function bakState(){ try{ return JSON.parse(localStorage.getItem(BAKKEY)||"null"); }catch(e){ return null; } }
+function bakPending(){ const b=bakState(), m=(b&&b.m)||{}; return ROUNDS.filter(r=>m[r.id]!==hsh(JSON.stringify(r))).length; }
+function bakMark(){ const m={}; ROUNDS.forEach(r=>m[r.id]=hsh(JSON.stringify(r)));
+ try{ localStorage.setItem(BAKKEY,JSON.stringify({ts:Date.now(),m:m})); }catch(e){} }
+function bakBlob(){ return new Blob([JSON.stringify({schema:"golf_runden_v1",app:APPVER,exported:new Date().toISOString(),courses:COURSES,rounds:ROUNDS},null,2)],{type:"application/json"}); }
+function bakName(){ return "golf_runden_"+today()+".json"; }
+function bakDone(){ bakMark(); toast("Runden gesichert"); bakSync(); $("#bakBg").classList.remove("on"); }
+function bakDownload(){ const u=URL.createObjectURL(bakBlob()); const a=document.createElement("a"); a.href=u; a.download=bakName();
+ document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000); bakDone(); }
+async function bakShare(){ let f=null;
+ try{ f=new File([bakBlob()],bakName(),{type:"application/json"}); }catch(e){}
+ if(f&&navigator.canShare&&navigator.canShare({files:[f]})){
+  try{ await navigator.share({files:[f],title:"Tracer Runden-Backup"}); bakDone(); }
+  catch(e){ if(!(e&&e.name=="AbortError"))toast("Teilen fehlgeschlagen – bitte Herunterladen"); }
+  return; }
+ toast("Teilen nicht verfügbar – lade herunter"); bakDownload(); }
+function fmtTs(ts){ const d=new Date(ts), z=v=>String(v).padStart(2,"0");
+ return z(d.getDate())+"."+z(d.getMonth()+1)+"."+String(d.getFullYear()).slice(2)+" "+z(d.getHours())+":"+z(d.getMinutes()); }
+function bakSync(){ const b=bakState(), n=bakPending(), info=$("#bakInfo"), ban=$("#bakBan");
+ const last=b&&b.ts?"Letzte Sicherung: "+fmtTs(b.ts):"Noch nie gesichert";
+ if(info)info.innerHTML=n?`<span style="color:var(--warn)">${n} Runde${n==1?"":"n"} seit der letzten Sicherung neu oder geändert.</span> ${last}.`:`<span class="tracerTxt">Alles gesichert.</span> ${last}.`;
+ if(ban){ if(n&&ROUNDS.length){ ban.style.display="";
+   ban.innerHTML=`<div style="display:flex;align-items:center;gap:10px"><div style="flex:1;font-size:13px;line-height:1.45"><b style="color:var(--warn)">${n} Runde${n==1?"":"n"} nicht gesichert.</b><br><span style="color:var(--mut)">Die Daten liegen nur auf diesem Handy.</span></div><button class="go" id="bakBanBtn" style="padding:10px 13px;border-color:var(--warn);color:var(--warn)">Sichern</button></div>`;
+   $("#bakBanBtn").onclick=()=>bakAsk(false); }
+  else ban.style.display="none"; } }
+function bakAsk(fin){ const n=bakPending(); if(fin&&!n)return;
+ $("#bakTitle").textContent=fin?"Runde gespeichert – jetzt sichern?":"Runden sichern";
+ const b=bakState();
+ $("#bakTxt").innerHTML=`Deine Runden liegen nur auf diesem Handy. ${n?`<b>${n} Runde${n==1?" ist":"n sind"} noch nicht gesichert.</b>`:"Alles ist bereits gesichert."}<br>${b&&b.ts?"Letzte Sicherung: "+fmtTs(b.ts):"Bisher keine Sicherung."}<br><br><b>Teilen</b> öffnet das Android-Menü – dort „In Drive speichern“ wählen. Die Datei lässt sich unter „Runden importieren“ wieder einlesen.`;
+ $("#bakBg").classList.add("on"); }
+$("#bakShare").onclick=()=>bakShare();
+$("#bakDl").onclick=()=>bakDownload();
+$("#bakLater").onclick=()=>$("#bakBg").classList.remove("on");
+$("#bakBg").onclick=e=>{ if(e.target.id=="bakBg")$("#bakBg").classList.remove("on"); };
+
 function clubRank(n){ const s=String(n||"").toLowerCase().trim(); let m;
  if(!s) return 999;
  if(/driver|^dr\b|^1w\b/.test(s)) return 0;
@@ -1939,6 +2100,7 @@ function renderRdPlay(){
   $("#rdHolePts").textContent = row.s ? (pt+" Punkt"+(pt==1?"":"e")+" · Netto-Par "+row.net+" · "+(dn===0?"genau getroffen":(dn<0?(-dn)+" unter":dn+" über"))) : "Schläge eintragen";
   $("#rdHolePts").style.color = ptCol(row);
  }
+ renderRdX();
  $("#rdPrev").disabled=rdHole==0; $("#rdPrev").style.opacity=rdHole==0?.4:1;
  $("#rdNext").textContent = rdHole==HS.length-1 ? "Letztes Loch" : "Weiter";
 }
@@ -1950,7 +2112,8 @@ function rdStep(f,d,b){
  e[K(f)]=Math.max(0,Math.min(30,(+e[K(f)]||0)+d));
  const gs=+e[K("s")]||0;
  if((+e[K("p")]||0)>gs)e[K("p")]=gs;
- if((+e[K("pen")]||0)>gs)e[K("pen")]=gs;
+ if((+e[K("pen")]||0)>gs){ if(f=="pen"&&d>0)e[K("s")]=+e[K("pen")]; else e[K("pen")]=gs; }
+ if(b==1)pcSync(e);
  rdCurSave(); renderRdPlay();
 }
 
@@ -1984,15 +2147,20 @@ function renderRdTable(){
    <td class="num b2s" style="font-weight:800">${S2.schlaege}</td><td class="num" style="font-weight:800">${S2.putts}</td><td class="num" style="font-weight:800">${S2.strafen}</td>
    <td class="num tracerTxt" style="font-weight:800">${S2.punkte}</td></tr>`;
  }else{
-  html=`<tr><th>Loch</th><th>Par</th><th>Idx</th><th>Vorg</th><th>Schl</th><th>Putts</th><th>Straf</th><th>Pkt</th></tr>`;
-  S.rows.forEach((r,i)=>{ html+=`<tr class="${i==rdHole?"hl":""}"><td class="num">${r.n}</td><td class="num">${r.par}</td><td class="num" style="color:var(--mut)">${r.idx}</td><td class="num tracerTxt">${r.vor}</td>`
+  html=`<tr><th>Loch</th><th>Par</th><th>Idx</th><th>Vorg</th><th>Schl</th><th>Putts</th><th>Straf</th><th>Pkt</th><th>Abschlag</th><th>Ursache</th><th>Körper</th></tr>`;
+  S.rows.forEach((r,i)=>{ const e=rdCur.holes.find(x=>x.n==r.n)||{}; pcSync(e);
+   html+=`<tr class="${i==rdHole?"hl":""}"><td class="num">${r.n}</td><td class="num">${r.par}</td><td class="num" style="color:var(--mut)">${r.idx}</td><td class="num tracerTxt">${r.vor}</td>`
    +cin(r.n,"s",r.s)+cin(r.n,"p",r.p)+cin(r.n,"pen",r.pen)
-   +`<td class="num pcell" data-b="1" style="font-weight:800">${r.pts==null?"–":r.pts}</td></tr>`; });
+   +`<td class="num pcell" data-b="1" style="font-weight:800">${r.pts==null?"–":r.pts}</td>`
+   +`<td>${xSel(r.n,"tc",null,e.tc||"",[["","–"]].concat(TEE_CLUBS.map(c=>[c,c])))}</td>`
+   +`<td class="pccell" data-h="${r.n}">${pcCellInner(e)}</td>`
+   +`<td>${xSel(r.n,"bw",null,e.bw==null?"":String(e.bw),[["","–"],["0","ok"],["1","leicht"],["2","stark"]])}</td></tr>`; });
   html+=`<tr><td style="font-weight:800">Total</td><td class="num" style="font-weight:800">${S.parAll}</td><td></td><td class="num" style="font-weight:800">${S.ch}</td>
    <td class="num" style="font-weight:800">${S.schlaege}</td><td class="num" style="font-weight:800">${S.putts}</td><td class="num" style="font-weight:800">${S.strafen}</td>
-   <td class="num tracerTxt" style="font-weight:800">${S.punkte}</td></tr>`;
+   <td class="num tracerTxt" style="font-weight:800">${S.punkte}</td><td></td><td></td><td></td></tr>`;
  }
  $("#rdTbl").innerHTML=html;
+ xSelBind($("#rdTbl"));
  $$("#rdTbl input.cin").forEach(inp=>{
   inp.onchange=inp.oninput=()=>{const e=rdCur.holes.find(x=>x.n==+inp.dataset.h);
    let v=parseInt(inp.value,10); if(isNaN(v)||v<0)v=0; if(v>30)v=30;
@@ -2001,9 +2169,11 @@ function renderRdTable(){
    const gs=+e[K("s")]||0;
    if((+e[K("p")]||0)>gs)e[K("p")]=gs;
    if((+e[K("pen")]||0)>gs)e[K("pen")]=gs;
+   if(!two)pcSync(e);
    rdCurSave();
    $("#rdTblSum").textContent=rdTblSumTxt();
    const tr=inp.closest("tr"), hn=+inp.dataset.h;
+   const pcC=tr.querySelector(".pccell"); if(pcC&&!two){ const nw=pcCellInner(e); if(pcC.dataset.sig!=String(+e.pen||0)){pcC.innerHTML=nw;pcC.dataset.sig=String(+e.pen||0);xSelBind(pcC);} }
    const A=rdSummary(rdCur,1).rows.find(x=>x.n==hn);
    const c1=tr.querySelector('.pcell[data-b="1"]'); if(c1)c1.textContent=A.pts==null?"–":A.pts;
    if(nBalls(rdCur)==2){ const B=rdSummary(rdCur,2).rows.find(x=>x.n==hn);
@@ -2072,14 +2242,19 @@ function renderRdDetail(){
    <div class="rdnote">Nimmt man Loch für Loch den besseren der zwei Bälle, kommen <b>${SB.punkte} Punkte</b> bei <b>${SB.schlaege} Schlägen</b> heraus — ${gap>0?"<b>"+gap+" Punkt"+(gap==1?"":"e")+" mehr</b> als dein besserer Einzelball ("+best+")":"gleich viel wie dein besserer Einzelball"}. Dieser Abstand ist deine Streuung: er verschwindet nicht durch längere Schläge, sondern durch Wiederholbarkeit. Für Punkte, Handicap und Score Differential zählt allein Ball 1.</div></div>`;
  }else{
   h+=`<div class="card rdtap"><div class="lbl" style="margin-bottom:2px">Loch für Loch <span style="color:var(--sky);text-transform:none;letter-spacing:0">· tippen zum Bearbeiten</span></div><div class="scroll"><table class="tbl cmp">
-   <tr><th>Loch</th><th>m</th><th>Par</th><th>Idx</th><th>Vorg</th><th>Schl</th><th>bis Grün</th><th>Putts</th><th>Straf</th><th>Pkt</th></tr>`;
-  S.rows.forEach(x=>{h+=`<tr><td class="num">${x.n}</td><td class="num" style="color:var(--mut)">${x.m||"–"}</td><td class="num">${x.par}</td>
+   <tr><th>Loch</th><th>m</th><th>Par</th><th>Idx</th><th>Vorg</th><th>Schl</th><th>bis Grün</th><th>Putts</th><th>Straf</th><th>Pkt</th><th>Abschlag</th><th>Körper</th></tr>`;
+  const BWR=bwRound(r);
+  S.rows.forEach(x=>{const e=r.holes.find(y=>y.n==x.n)||{}; const pc=(x.pen&&Array.isArray(e.pc))?e.pc.slice(0,x.pen).filter(c=>c!="?"):[];
+   const bw=BWR?(e.bw==null?0:+e.bw):null;
+   h+=`<tr><td class="num">${x.n}</td><td class="num" style="color:var(--mut)">${x.m||"–"}</td><td class="num">${x.par}</td>
    <td class="num" style="color:var(--mut)">${x.idx}</td><td class="num tracerTxt">${x.vor}</td><td class="num" style="font-weight:700">${x.s||"–"}</td>
-   <td class="num">${x.s?x.bis:"–"}</td><td class="num">${x.s?x.p:"–"}</td><td class="num" style="color:${x.pen?"var(--bad)":"var(--mut)"}">${x.pen||"–"}</td>
-   <td class="num" style="font-weight:800">${x.pts==null?"–":x.pts}</td></tr>`;});
+   <td class="num">${x.s?x.bis:"–"}</td><td class="num">${x.s?x.p:"–"}</td><td class="num" style="color:${x.pen?"var(--bad)":"var(--mut)"}">${x.pen||"–"}${pc.length?`<span class="pcc">${pc.join("")}</span>`:""}</td>
+   <td class="num" style="font-weight:800">${x.pts==null?"–":x.pts}</td>
+   <td>${e.tc||"–"}</td><td style="color:${bw==2?"var(--bad)":bw==1?"var(--warn)":"var(--mut)"}">${bw==null?"–":BW_N[bw]}</td></tr>`;});
   h+=`<tr><td style="font-weight:800">Σ</td><td></td><td class="num" style="font-weight:800">${S.par}</td><td></td><td class="num" style="font-weight:800">${S.ch}</td>
    <td class="num" style="font-weight:800">${S.schlaege}</td><td class="num" style="font-weight:800">${S.bis}</td><td class="num" style="font-weight:800">${S.putts}</td>
-   <td class="num" style="font-weight:800">${S.strafen}</td><td class="num tracerTxt" style="font-weight:800">${S.punkte}</td></tr></table></div></div>`;
+   <td class="num" style="font-weight:800">${S.strafen}</td><td class="num tracerTxt" style="font-weight:800">${S.punkte}</td><td></td><td></td></tr></table></div>
+   <div class="hint" style="margin-top:6px">Strafen: W Wasser · A Aus · V verloren · U unspielbar. Abschlag, Ursache und Körper lassen sich über „Bearbeiten“ (Tabelle) nachtragen.${(r.bwOrt&&r.bwOrt.length)?" · Beschwerden: "+r.bwOrt.join(", "):""}</div></div>`;
  }
 
  (nb==2?[["Ball 1",S],["Ball 2",S2]]:[["",S]]).forEach(pair=>{
@@ -2159,7 +2334,7 @@ function ceValidate(){
 /* Feste Referenzwerte. BEWUSST nicht aus DATA berechnet: der Datensatz mischt
    R10-Radar und Anlagenanzeige, eine Live-Rechnung wuerde die Skalen vermengen. */
 const BAG=[
- {k:"Driver Qi",     med:204.5,p25:191.5,n:16,src:"R10"},
+ {k:"Driver Qi",     med:204.1,p25:165.7,n:47,src:"R10",d:"23.09."},
  {k:"Driver Srixon", med:187.3,p25:169.0,n:36,src:"R10"},
  {k:"5er",           med:167.1,p25:158.2,n:36,src:"R10",rec:1},
  {k:"4er",           med:164.0,p25:145.8,n:31,src:"R10"},
@@ -2202,10 +2377,10 @@ function renderBag(){
    <td style="color:var(--mut);font-size:10.5px">${x.src}</td></tr>`;});
  $("#bagLadder").innerHTML=h;
  /* Eisen */
- h=`<tr><th>Schläger</th><th>Median</th><th>p25</th><th>n</th></tr>`;
+ h=`<tr><th>Schläger</th><th>Median</th><th>p25</th><th>n</th><th>Messung</th></tr>`;
  sortClubs(BAG.map(b=>b.k)).map(k=>BAG.find(b=>b.k==k)).forEach(b=>{h+=`<tr><td style="font-weight:700;${b.rec?"color:var(--tracer)":""}">${b.k}${b.rec?" ●":""}</td>
   <td class="num" style="font-weight:700">${b.med.toFixed(1)}</td><td class="num tracerTxt">${b.p25.toFixed(1)}</td>
-  <td class="num" style="color:var(--mut)">${b.n}</td></tr>`;});
+  <td class="num" style="color:var(--mut)">${b.n}</td><td class="num" style="color:var(--mut);font-size:11px">${b.d||"17.–19.08."}</td></tr>`;});
  $("#bagIrons").innerHTML=h;
  /* Wedge-Matrix */
  h=`<tr><th></th><th>voll</th><th>10:30</th><th>9 Uhr</th></tr>`;
@@ -2263,7 +2438,10 @@ $$("#rdBallMode .seg").forEach(e=>e.onclick=()=>{ if(!rdCur)return;
  toast(nb==2?"Zwei Bälle":"Ein Ball"); });
 $$("#rdPlay .stpb").forEach(b=>b.onclick=()=>rdStep(b.closest(".stp").dataset.f,+b.dataset.d));
 $("#rdPrev").onclick=()=>{if(rdHole>0){rdHole--;renderRdPlay();}};
-$("#rdNext").onclick=()=>{const n=rdHolesOf(rdCur).length;if(rdHole<n-1){rdHole++;renderRdPlay();}else{rdFinishRound();}};
+$("#rdNext").onclick=()=>{const HS=rdHolesOf(rdCur),n=HS.length;if(rdHole<n-1){
+ const a=rdCur.holes.find(x=>x.n==HS[rdHole].n), z=rdCur.holes.find(x=>x.n==HS[rdHole+1].n);
+ if(a&&z&&a.bw!=null&&z.bw==null){z.bw=a.bw;rdCurSave();}
+ rdHole++;renderRdPlay();}else{rdFinishRound();}};
 $("#rdToTable").onclick=()=>rdShow("table");
 $("#rdToPlay").onclick=()=>rdShow("play");
 $("#rdTblBack").onclick=()=>{ if(ROUNDS.some(x=>x.id==rdCur.id)&&rdCur.holes.some(x=>x.s)){rdDetailId=rdCur.id;rdShow("detail");} else rdShow("play"); };
@@ -2272,7 +2450,8 @@ $("#rdTblFinish").onclick=()=>rdFinishRound();
 $("#rdAbort").onclick=()=>{if(confirm("Runde verwerfen?")){ROUNDS=ROUNDS.filter(x=>x.id!=rdCur.id);saveR();rdCur=null;rdShow("home");toast("Verworfen");}};
 function rdFinishRound(){ if(!rdCur)return;
  if(!rdCur.holes.some(x=>(+x.s||0)||(+x.s2||0))){toast("Noch keine Schläge erfasst");return;}
- rdCurSave(); rdDetailId=rdCur.id; rdCur=null; rdShow("detail"); toast("Runde gespeichert"); }
+ rdCurSave(); rdDetailId=rdCur.id; rdCur=null; rdShow("detail"); toast("Runde gespeichert");
+ setTimeout(()=>bakAsk(true),400); }
 $("#rdNewCourse").onclick=()=>{rdEditId=null;rdEditHoles=[];rdShow("edit");};
 $$("#rdEdit .seg[data-hn]").forEach(s=>s.onclick=()=>{rdEditHn=+s.dataset.hn;
  const old=rdEditHoles; rdEditHoles=ceBlank(rdEditHn);
@@ -2289,9 +2468,9 @@ $("#ceSave").onclick=()=>{const err=ceValidate(); if(err){toast(err);return;}
 $("#ceDelete").onclick=()=>{if(!rdEditId)return;
  if(ROUNDS.some(r=>r.courseId==rdEditId)){toast("Zu diesem Platz gibt es Runden");return;}
  if(confirm("Platz löschen?")){COURSES=COURSES.filter(c=>c.id!=rdEditId);saveC();rdShow("home");toast("Platz gelöscht");}};
-$("#rdExport2").onclick=()=>$("#rdExport").click();
-$("#rdExport").onclick=()=>{const b=new Blob([JSON.stringify({schema:"golf_runden_v1",courses:COURSES,rounds:ROUNDS},null,2)],{type:"application/json"});
- const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="golf_runden_"+today()+".json";a.click();URL.revokeObjectURL(u);toast("Runden exportiert");};
+$("#rdExport2").onclick=()=>bakAsk(false);
+$("#rdExport").onclick=()=>bakDownload();
+$("#rdShare").onclick=()=>bakShare();
 /* --- v28: Augwil-Rating korrigiert -------------------------------------
    Slope 137 / CR 70.8 (18 Loch) stammen aus den Course-Rating-PDF des Clubs.
    9 Loch gelb: CR 35.4, Slope 137, Par 36.
