@@ -584,14 +584,26 @@ canvas{width:100%;height:230px;display:block}
    <div class="card">
     <div class="lbl" style="margin-bottom:2px">Eisen und Driver</div>
     <div class="scroll"><table class="tbl cmp" id="bagIrons"></table></div>
-    <div class="hint">Nur saubere Schläge, Garmin R10, Eisen = Takomo 201 MKII (ab 17.08.). „sauber“ = verbleibende/alle Schläge nach der Ausreisser-Elimination. <span style="color:var(--warn)">⚠ alter Griff</span>: mit dem Hammer-Grip noch zu wenig gemessen (4er: 0, 5er: 2 saubere) — bei 7er bis 9er ist der neue Griff 14–19 m kürzer, diese Werte sind also vermutlich zu lang.</div>
+    <div class="hint"><b>typisch</b> = Median der sauberen Schläge, <b style="color:var(--tracer)">gut</b> = oberes Viertel (p75), also deine Weite bei einem guten Schwung. p25 = was auch ein etwas schwächerer sauberer Schlag noch trägt. Garmin R10, Eisen Takomo 201 MKII, nur Sessions am Nachmittag/Abend. <span style="color:var(--warn)">⚠ alter Griff</span>: mit dem Hammer-Grip nachmittags noch zu wenig gemessen.</div>
     <details style="margin-top:8px"><summary class="hint" style="cursor:pointer;color:var(--sky)">Methode</summary><div class="rdnote" style="margin-top:6px">
     <b>1. Messfehler:</b> fehlende Werte, Smash über 1,45 (Eisen) bzw. 1,52 (Driver).<br>
     <b>2. Robuste Schätzung je Schläger:</b> Zentrum = Median, σ = 1,4826 × MAD der Werte <i>oberhalb</i> des Medians. Fehlschläge ziehen nur nach unten; die obere Hälfte liefert eine unverfälschte Streuung.<br>
-    <b>3. Ausreisser:</b> Ballspeed oder Carry/Ballspeed mehr als 2,5 σ unter dem Median (Fehltreffer bzw. getoppt/zu tief/abgerissen) oder mehr als 3,5 σ darüber (Fehlmessung). Carry/Ballspeed je Griffperiode (der Griff hat Abflug und Spin verändert), Ballspeed gepoolt.<br>
-    <b>4. Alter gegen neuen Griff:</b> Mann-Whitney-U, α = 5 %. Signifikant → nur neuer Griff; nicht signifikant → gepoolt; weniger als 8 saubere Schläge mit neuem Griff → alter Griff, markiert.<br>
-    <b>Kontrolle:</b> 45 deiner 75 BAD-Markierungen wurden gefunden; die übrigen 30 haben normale Weite (Median 0 m vom Schläger-Median), vermutlich wegen Richtung markiert. Insgesamt 19 % der Schläge entfernt.<br>
-    Der PW hat keine erkennbaren Ausreisser: seine Streuung ist durchgehend, nicht zweigeteilt.</div></details>
+    <b>3. Ausreisser (einzelne Schläge):</b> Ballspeed oder Carry/Ballspeed mehr als 2,5 σ unter dem Median oder mehr als 3,5 σ darüber.<br>
+    <b>4. Ausreisser (ganze Sessions):</b> Die Sessions unterscheiden sich signifikant (Kruskal-Wallis, 7er p &lt; 10⁻⁶). Ursache ist die Tageszeit: Morgen-Sessions (Start vor 12 Uhr: 05.08., 18.08., 14.09. früh) haben 10–15 km/h weniger Ballspeed. Sie zählen nicht in „typisch/gut“, sondern stehen separat unter „Morgens“.<br>
+    <b>5. Alter gegen neuen Griff:</b> Mann-Whitney-U, α = 5 %, nur Nachmittags-Sessions. Signifikant → nur neuer Griff; sonst gepoolt; neuer Griff mit weniger als 8 sauberen Schlägen → alter Griff, markiert.<br>
+    <b>Kontrolle:</b> 45 deiner 75 BAD-Markierungen werden gefunden; die übrigen haben normale Weite (vermutlich wegen Richtung markiert).</div></details>
+   </div>
+
+   <div class="card">
+    <div class="lbl" style="margin-bottom:2px">Morgens</div>
+    <div class="scroll"><table class="tbl cmp" id="bagMorning"></table></div>
+    <div class="hint">Gleicher Schläger, Session vor 12 Uhr gegen Nachmittag. Ursache ist der tiefere Ballspeed, nicht die Luft (die erklärt 2–3 m). Bei frühen Startzeiten einen Schläger mehr nehmen oder länger einschlagen.</div>
+   </div>
+
+   <div class="card">
+    <div class="lbl" style="margin-bottom:2px">Anlage Adlisberg gegen R10</div>
+    <div class="scroll"><table class="tbl cmp" id="bagAnlage"></table></div>
+    <div class="hint">Typische Weite (Median der sauberen Schläge), Takomo, Anlage 17.08.–08.09. Ab dem 7er stimmen beide Systeme auf wenige Meter überein; bei 4er bis 6er zeigt die Anlage 6–24 m mehr. Welches System bei den langen Eisen stimmt, lässt sich nur mit einer Kontrollmessung auf dem Platz klären (Laser auf den Aufschlag).</div>
    </div>
 
    <div class="card">
@@ -602,7 +614,7 @@ canvas{width:100%;height:230px;display:block}
 
    <div class="card">
     <div class="lbl">Zwei Skalen</div>
-    <div class="rdnote">Eisen und Driver stammen aus der R10-Radarmessung, die Wedge-Matrix aus der Anlagenanzeige. Der PW steht in beiden: <b>105,5 m</b> (R10, saubere Schläge) und <b>106,5 m</b> (Anlage). Das 52° voll wurde einmal auf beiden Skalen gemessen: 79,1 gegen 79,0 m. Am kurzen Ende sind die Skalen deckungsgleich.</div>
+    <div class="rdnote">Eisen und Driver stammen aus der R10-Radarmessung, die Wedge-Matrix aus der Anlagenanzeige. Der PW steht in beiden: <b>105 m</b> (R10, saubere Schläge) und <b>106,5 m</b> (Anlage, Wedge-Matrix). Das 52° voll wurde einmal auf beiden Skalen gemessen: 79,1 gegen 79,0 m. Am kurzen Ende sind die Skalen deckungsgleich.</div>
    </div>
 
    <button class="go" id="bagBack" style="width:100%;padding:14px;font-size:15px">Zurück</button>
@@ -664,7 +676,7 @@ canvas{width:100%;height:230px;display:block}
 <div class="toast" id="toast"></div>
 
 <script>
-const APPVER="v36";
+const APPVER="v37";
 const KEY="golfTrackerV1";
 const SEEDVER="2026-07-27";
 const CLUBS=["Driver","3er","4er","5er","6er","7er","8er","9er","PW","52°","56°","58°","60°"];
@@ -2341,15 +2353,15 @@ function ceValidate(){
 /* Feste Referenzwerte. BEWUSST nicht aus DATA berechnet: der Datensatz mischt
    R10-Radar und Anlagenanzeige, eine Live-Rechnung wuerde die Skalen vermengen. */
 const BAG=[
- {k:"Driver Qi",med:209.0,p25:201.5,n:33,nt:48,src:"R10",g:"neu",d:"23.09."},
- {k:"Driver Srixon",med:214.0,p25:193.1,n:15,nt:20,src:"R10",g:"neu",d:"14.09.",p:0.0486,dm:19.8},
- {k:"4er",med:154.6,p25:142.4,n:29,nt:36,src:"R10",g:"alt",d:"17.08.–19.08.",nneu:0},
- {k:"5er",med:166.7,p25:160.3,n:23,nt:33,src:"R10",g:"alt",d:"17.08.–19.08.",nneu:2},
- {k:"6er",med:148.8,p25:135.0,n:63,nt:85,src:"R10",g:"alt+neu",d:"17.08.–14.09.",p:0.0734,dm:-12.1},
- {k:"7er",med:133.5,p25:123.1,n:55,nt:74,src:"R10",g:"neu",d:"14.09.–23.09.",p:0.0001,dm:-15.8},
- {k:"8er",med:124.7,p25:115.5,n:19,nt:23,src:"R10",g:"neu",d:"14.09.",p:0.0018,dm:-18.8},
- {k:"9er",med:114.1,p25:107.2,n:22,nt:27,src:"R10",g:"neu",d:"14.09.–23.09.",p:0.0002,dm:-14.4},
- {k:"PW",med:105.5,p25:99.1,n:48,nt:48,src:"R10",g:"alt+neu",d:"18.08.–14.09.",p:0.1744,dm:-4.4}
+ {k:"Driver Qi",med:209.0,gut:214.1,p25:201.5,n:33,nt:48,src:"R10",g:"neu",d:"23.09."},
+ {k:"Driver Srixon",med:217.8,gut:224.8,p25:214.2,n:10,nt:11,src:"R10",g:"neu",d:"14.09.",mo:-26.5,mop:"neu"},
+ {k:"4er",med:154.5,gut:174.0,p25:141.9,n:20,nt:25,src:"R10",g:"alt",d:"17.08., 19.08.",mo:3.0,mop:"alt",an:178.0,anG:180.5,anN:10,anD:"17.08., 08.09."},
+ {k:"5er",med:165.2,gut:172.6,p25:159.7,n:19,nt:25,src:"R10",g:"alt",d:"17.08., 19.08.",an:171.0,anG:175.5,anN:14,anD:"17.08.–08.09."},
+ {k:"6er",med:153.0,gut:161.4,p25:137.5,n:40,nt:52,src:"R10",g:"alt+neu",d:"17.08.–14.09.",mo:-17.1,mop:"neu",an:173.0,anG:179.5,anN:27,anD:"17.08., 29.08."},
+ {k:"7er",med:149.8,gut:157.4,p25:135.2,n:48,nt:65,src:"R10",g:"alt+neu",d:"19.08.–23.09.",mo:-18.9,mop:"neu",an:150.0,anG:158.0,anN:45,anD:"17.08.–08.09."},
+ {k:"8er",med:146.5,gut:154.4,p25:137.8,n:24,nt:27,src:"R10",g:"alt",d:"17.08., 19.08.",mo:-20.1,mop:"alt",an:141.0,anG:145.5,anN:23,anD:"17.08., 08.09."},
+ {k:"9er",med:124.3,gut:130.3,p25:119.3,n:12,nt:17,src:"R10",g:"neu",d:"14.09., 23.09.",mo:-16.4,mop:"neu",an:124.0,anG:130.0,anN:62,anD:"17.08.–29.08."},
+ {k:"PW",med:105.1,gut:118.6,p25:101.0,n:14,nt:14,src:"R10",g:"alt",d:"19.08.",mo:3.0,mop:"alt",an:108.0,anG:112.0,anN:25,anD:"20.08.–08.09."}
 ];
 const WEDGE=[
  {k:"PW", voll:[106.5,101.8], u1030:[85.0,82.2], u9:[64.5,62.0]},
@@ -2384,13 +2396,27 @@ function renderBag(){
    <td style="color:var(--mut);font-size:10.5px">${x.src}</td></tr>`;});
  $("#bagLadder").innerHTML=h;
  /* Eisen */
- h=`<tr><th>Schläger</th><th>Median</th><th>p25</th><th>sauber</th><th>Daten</th></tr>`;
+ h=`<tr><th>Schläger</th><th>typisch</th><th>gut</th><th>p25</th><th>n</th><th>Daten</th></tr>`;
  sortClubs(BAG.map(b=>b.k)).map(k=>BAG.find(b=>b.k==k)).forEach(b=>{const w=b.g=="alt";
   h+=`<tr><td style="font-weight:700">${b.k}</td>
-  <td class="num" style="font-weight:700">${b.med.toFixed(1)}</td><td class="num tracerTxt">${b.p25.toFixed(1)}</td>
-  <td class="num" style="color:var(--mut)">${b.n}/${b.nt}</td>
+  <td class="num" style="font-weight:700">${b.med.toFixed(0)}</td><td class="num tracerTxt" style="font-weight:700">${b.gut.toFixed(0)}</td>
+  <td class="num" style="color:var(--mut)">${b.p25.toFixed(0)}</td>
+  <td class="num" style="color:var(--mut)">${b.n}</td>
   <td style="font-size:11px;line-height:1.35;color:${w?"var(--warn)":"var(--mut)"}">${w?"alter Griff ⚠":b.g=="neu"?"neuer Griff":"alt+neu"}<br><span style="color:var(--mut)">${b.d}</span></td></tr>`;});
  $("#bagIrons").innerHTML=h;
+ /* Morgens */
+ h=`<tr><th>Schläger</th><th>normal</th><th>morgens</th><th>Δ</th></tr>`;
+ sortClubs(BAG.filter(b=>b.mo!=null).map(b=>b.k)).map(k=>BAG.find(b=>b.k==k)).forEach(b=>{
+  h+=`<tr><td style="font-weight:700">${b.k}</td><td class="num">${b.med.toFixed(0)}</td><td class="num">${(b.med+b.mo).toFixed(0)}</td>
+  <td class="num" style="font-weight:700;color:${b.mo<=-8?"var(--warn)":"var(--mut)"}">${b.mo>0?"+":""}${b.mo.toFixed(0)}</td></tr>`;});
+ $("#bagMorning").innerHTML=h;
+ /* Anlage */
+ h=`<tr><th>Schläger</th><th>R10</th><th>Anlage</th><th>Δ</th><th>n</th></tr>`;
+ sortClubs(BAG.filter(b=>b.an!=null).map(b=>b.k)).map(k=>BAG.find(b=>b.k==k)).forEach(b=>{const dd=b.an-b.med;
+  h+=`<tr><td style="font-weight:700">${b.k}</td><td class="num">${b.med.toFixed(0)}</td><td class="num">${b.an.toFixed(0)}</td>
+  <td class="num" style="font-weight:700;color:${Math.abs(dd)>=8?"var(--warn)":"var(--mut)"}">${dd>0?"+":""}${dd.toFixed(0)}</td><td class="num" style="color:var(--mut)">${b.anN}</td></tr>`;});
+ $("#bagAnlage").innerHTML=h;
+
  /* Wedge-Matrix */
  h=`<tr><th></th><th>voll</th><th>10:30</th><th>9 Uhr</th></tr>`;
  WEDGE.forEach(w=>{const c=v=>v?`<b>${v[0].toFixed(1)}</b><br><span style="color:var(--tracer);font-size:10.5px">${v[1].toFixed(1)}</span>`:`<span style="color:var(--mut)">–</span>`;
