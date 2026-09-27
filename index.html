@@ -624,7 +624,7 @@ canvas{width:100%;height:230px;display:block}
 <div class="toast" id="toast"></div>
 
 <script>
-const APPVER="v32";
+const APPVER="v33";
 const KEY="golfTrackerV1";
 const SEEDVER="2026-07-27";
 const CLUBS=["Driver","3er","4er","5er","6er","7er","8er","9er","PW","52°","56°","58°","60°"];
@@ -1537,6 +1537,9 @@ function renderRdHome(){
              kalibriert: HI 14.0 -> 8.5, HI 10.1 -> 6.5, HI 10.3 -> 6.6)
    Danach die WHS-Tabelle je nach Anzahl vorliegender Ergebnisse.
    Nur Ball 1, nur vollstaendig erfasste Runden, nur Plaetze mit CR+Slope. */
+/* v33: Startwert der Kette ist der Index VOR der ersten erfassten Runde (Platzreife 54.0),
+   nicht der aktuell eingetragene Index. Das Feld "Handicap Index" im Runde-Tab dient nur
+   noch der Vorgabe neuer Runden (aktueller offizieller Index). */
 const HI_START_DEFAULT=54.0;
 function sdRound(r,hiVor){
  const S=rdSummary(r,1);
@@ -1568,7 +1571,7 @@ function whsTab(n){
  return {k:8,adj:0};
 }
 function theoSerie(){
- const start=(+rdHi())||HI_START_DEFAULT;
+ const start=HI_START_DEFAULT;
  const L=ROUNDS.slice().filter(r=>r&&Array.isArray(r.holes))
    .sort((a,b)=>(a.date||"").localeCompare(b.date||"")||(a.id>b.id?1:-1));
  let hi=start, rec=[], out=[], ohne=0;
@@ -1598,9 +1601,10 @@ function renderTheo(){
   <div style="display:flex;align-items:baseline;gap:12px;margin-top:6px;flex-wrap:wrap">
    <div style="font-size:40px;font-weight:800;color:var(--tracer);line-height:1">${T.hi.toFixed(1)}</div>
    <div class="hint" style="margin:0">aus ${T.rows.length} Runde${T.rows.length==1?"":"n"} ·
-    Start ${T.start.toFixed(1)} ·
+    Start ${T.start.toFixed(1)} (Platzreife) ·
     <b style="color:${diff>0?"var(--tracer)":"var(--mut)"}">${diff>0?"−":"+"}${Math.abs(diff).toFixed(1)}</b></div>
   </div>
+  ${(+rdHi())&&(+rdHi())!=T.start?`<div class="hint" style="margin-top:6px">Offizieller Index (im Feld eingetragen): <b style="color:var(--ink)">${(+rdHi()).toFixed(1)}</b></div>`:""}
   <div style="overflow-x:auto;margin-top:12px"><table style="width:100%;border-collapse:collapse;font-size:13px">
    <tr class="lbl"><td style="padding:4px 8px 4px 0">Datum</td><td class="num" style="text-align:right;padding:4px 8px">Brutto</td>
    <td class="num" style="text-align:right;padding:4px 8px">SD</td><td class="num" style="text-align:right;padding:4px 8px">+ erw.</td>
