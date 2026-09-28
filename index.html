@@ -230,6 +230,22 @@ canvas{width:100%;height:230px;display:block}
 .tbl th.bgrp{font-size:9.5px;letter-spacing:.5px;color:var(--mut);padding-bottom:2px}
 .rdbtns button{padding:12px 4px;font-size:14px}
 .rdnote{font-size:13px;color:var(--mut);line-height:1.55;margin-top:10px}
+#printSheet{display:none}
+@media print{
+ @page{size:A4 landscape;margin:10mm}
+ html,body{background:#fff!important;color:#000!important}
+ body>*:not(#printSheet){display:none!important}
+ #printSheet{display:block;font:10pt Arial,Helvetica,sans-serif;color:#1d2a22}
+ #printSheet h1{font-size:18pt;margin:0 0 2mm;color:#1f5e3a}
+ #printSheet .ps{font-size:9pt;color:#555;margin-bottom:4mm}
+ #printSheet table{width:100%;border-collapse:collapse}
+ #printSheet th{background:#1f5e3a;color:#fff;font-size:8.5pt;padding:1.6mm;text-align:right;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ #printSheet td{padding:1.6mm;border-bottom:.3mm solid #ccc;text-align:right}
+ #printSheet th:first-child,#printSheet td:first-child{text-align:left;font-weight:700}
+ #printSheet td.b{font-weight:700}
+ #printSheet tr.nw td{color:#777}
+ #printSheet .pf{font-size:8pt;color:#555;margin-top:3mm}
+}
 </style>
 </head>
 <body>
@@ -329,6 +345,8 @@ canvas{width:100%;height:230px;display:block}
  <!-- ===== STATS ===== -->
  <section class="view" id="vStats">
   <div class="filters">
+   <select id="sBag"><option value="bag" selected>Aktuelles Bag</option><option value="all">Alle Schläger</option></select>
+   <select id="sTod"><option value="all">Ganzer Tag</option><option value="vm">Vormittag</option><option value="nm">Nachmittag</option></select>
    <select id="sDay"><option value="all">Alle Tage</option></select>
    <select id="sSet"><option value="all">Alle Sets</option></select>
    <select id="sSwing"><option value="all">Alle Schwünge</option></select>
@@ -387,6 +405,8 @@ canvas{width:100%;height:230px;display:block}
  <!-- ===== VERLAUF ===== -->
  <section class="view" id="vTrend">
   <div class="filters">
+   <select id="tBag"><option value="bag" selected>Aktuelles Bag</option><option value="all">Alle Schläger</option></select>
+   <select id="tTod"><option value="all">Ganzer Tag</option><option value="vm">Vormittag</option><option value="nm">Nachmittag</option></select>
    <select id="tDay"><option value="all">Alle Tage</option></select>
    <select id="tClub"><option value="all">Alle Schläger</option></select>
    <select id="tSet"><option value="all">Alle Sets</option></select>
@@ -413,6 +433,8 @@ canvas{width:100%;height:230px;display:block}
  <!-- ===== LISTE ===== -->
  <section class="view" id="vList">
   <div class="filters">
+   <select id="lBag"><option value="bag">Aktuelles Bag</option><option value="all" selected>Alle Schläger</option></select>
+   <select id="lTod"><option value="all">Ganzer Tag</option><option value="vm">Vormittag</option><option value="nm">Nachmittag</option></select>
    <select id="lDay"><option value="all">Alle Tage</option></select>
    <select id="lClub"><option value="all">Alle Schläger</option></select>
    <select id="lSet"><option value="all">Alle Sets</option></select>
@@ -584,14 +606,16 @@ canvas{width:100%;height:230px;display:block}
    <div class="card">
     <div class="lbl" style="margin-bottom:2px">Schlägerblatt</div>
     <div class="scroll"><table class="tbl cmp" id="bagIrons"></table></div>
-    <div class="hint"><b>typisch</b> = Median der sauberen Schläge, <b style="color:var(--tracer)">gut</b> = oberes Viertel (p75), also deine Weite bei einem guten Schwung. p25 = was auch ein etwas schwächerer sauberer Schlag noch trägt. Garmin R10, Eisen Takomo 201 MKII, nur Sessions am Nachmittag/Abend. <span style="color:var(--warn)">⚠ alter Griff</span>: mit dem Hammer-Grip nachmittags noch zu wenig gemessen.</div>
+    <div class="hint" id="bagSrc" style="color:var(--sky)"></div>
+    <button class="go" id="bagPrintBtn" style="width:100%;padding:10px;margin-top:8px">Drucken / als PDF sichern</button>
+    <div class="hint"><b>Streu.</b> = seitliche Streuung in m: Breite, in der die mittleren 50 % landen. <b>typisch</b> = Median der sauberen Schläge, <b style="color:var(--tracer)">gut</b> = oberes Viertel (p75), also deine Weite bei einem guten Schwung. p25 = was auch ein etwas schwächerer sauberer Schlag noch trägt. Garmin R10, nur Sessions am Nachmittag/Abend. Die Werte rechnet die App bei jedem R10-Import neu. Ab 5 sauberen Schlägen erscheint ein Schläger. <span style="color:var(--warn)">⚠ alter Griff</span>: mit dem Hammer-Grip nachmittags noch zu wenig gemessen.</div>
     <details style="margin-top:8px"><summary class="hint" style="cursor:pointer;color:var(--sky)">Methode</summary><div class="rdnote" style="margin-top:6px">
-    <b>1. Messfehler:</b> fehlende Werte, Smash über 1,45 (Eisen) bzw. 1,52 (Driver).<br>
+    <b>1. Messfehler:</b> fehlende Werte, Smash über 1,45 (Eisen, Wedges), 1,50 (Hybrid) bzw. 1,52 (Driver, Holz).<br>
     <b>2. Robuste Schätzung je Schläger:</b> Zentrum = Median, σ = 1,4826 × MAD der Werte <i>oberhalb</i> des Medians. Fehlschläge ziehen nur nach unten; die obere Hälfte liefert eine unverfälschte Streuung.<br>
     <b>3. Ausreisser (einzelne Schläge):</b> Ballspeed oder Carry/Ballspeed mehr als 2,5 σ unter dem Median oder mehr als 3,5 σ darüber.<br>
-    <b>4. Ausreisser (ganze Sessions):</b> Die Sessions unterscheiden sich signifikant (Kruskal-Wallis, 7er p &lt; 10⁻⁶). Ursache ist die Tageszeit: Morgen-Sessions (Start vor 12 Uhr: 05.08., 18.08., 14.09. früh) haben 10–15 km/h weniger Ballspeed. Sie zählen nicht in „typisch/gut“, sondern stehen separat unter „Morgens“.<br>
+    <b>4. Ausreisser (ganze Sessions):</b> Die Sessions unterscheiden sich signifikant (Kruskal-Wallis, 7er p &lt; 10⁻⁶). Ursache ist die Tageszeit: Morgen-Sessions haben 10–15 km/h weniger Ballspeed. Eine Session sind die Schläge eines Tages ohne Pause über 45 Minuten, Start vor 12 Uhr gilt als Vormittag. Sie zählen nicht in „typisch/gut“, sondern stehen separat unter „Morgens“.<br>
     <b>5. Alter gegen neuen Griff:</b> Mann-Whitney-U, α = 5 %, nur Nachmittags-Sessions. Signifikant → nur neuer Griff; sonst gepoolt; neuer Griff mit weniger als 8 sauberen Schlägen → alter Griff, markiert.<br>
-    <b>Kontrolle:</b> 45 deiner 75 BAD-Markierungen werden gefunden; die übrigen haben normale Weite (vermutlich wegen Richtung markiert).</div></details>
+    <b>Kontrolle (v37):</b> 45 deiner 75 BAD-Markierungen werden gefunden; die übrigen haben normale Weite (vermutlich wegen Richtung markiert).<br><b>Aktuelles Bag:</b> Driver Qi (R320 bis 17.08. und am 14.09.), 5W, 4H, Takomo 5er–PW (R10 ab 17.08.), 50°, 56° ab 28.09.</div></details>
    </div>
 
    <div class="card">
@@ -609,12 +633,12 @@ canvas{width:100%;height:230px;display:block}
    <div class="card">
     <div class="lbl" style="margin-bottom:2px">Wedge-Matrix</div>
     <div class="scroll"><table class="tbl cmp" id="bagWedge"></table></div>
-    <div class="hint">Alte Wedges (52°/56°, bis 27.09.). Anlage Adlisberg Box 4, 20.08.2026, eine Session, eine Skala. 9 Uhr ist beim 52° und 56° nicht vermessen. Die neuen Cleveland RTZ 50°/56° sind noch nicht vermessen.</div>
+    <div class="hint">Aktuelle Wedges live aus den von Hand erfassten Schlägen je Schwungstufe (ab 3 sauberen Schlägen). Die alten Wedges stehen grau darunter (Anlage Adlisberg, 20.08.2026).</div>
    </div>
 
    <div class="card">
     <div class="lbl">Zwei Skalen</div>
-    <div class="rdnote">Eisen und Driver stammen aus der R10-Radarmessung, die Wedge-Matrix aus der Anlagenanzeige. Der PW steht in beiden: <b>105 m</b> (R10, saubere Schläge) und <b>106,5 m</b> (Anlage, Wedge-Matrix). Das 52° voll wurde einmal auf beiden Skalen gemessen: 79,1 gegen 79,0 m. Am kurzen Ende sind die Skalen deckungsgleich.</div>
+    <div class="rdnote">Das Schlägerblatt stammt aus der R10-Radarmessung, die Wedge-Matrix aus der Anlagenanzeige (von Hand erfasste Schläge je Schwungstufe). Am 20.08. stand der PW in beiden bei 105 bzw. 106,5 m, und das 52° voll wurde auf beiden Skalen gemessen: 79,1 gegen 79,0 m. Am kurzen Ende sind die Skalen deckungsgleich.</div>
    </div>
 
    <button class="go" id="bagBack" style="width:100%;padding:14px;font-size:15px">Zurück</button>
@@ -676,7 +700,7 @@ canvas{width:100%;height:230px;display:block}
 <div class="toast" id="toast"></div>
 
 <script>
-const APPVER="v38";
+const APPVER="v39";
 const KEY="golfTrackerV1";
 const SEEDVER="2026-07-27";
 const CLUBS=["Driver","5W","4H","5er","6er","7er","8er","9er","PW","50°","56°"];
@@ -751,7 +775,7 @@ let cur={club:"7er",series:"S1",status:"clean",dir:null,
  venue:(function(){try{return localStorage.getItem(KEY+"_venue")||DEFVENUE;}catch(e){return DEFVENUE;}})(),
  bay:(function(){try{return localStorage.getItem(KEY+"_bay")||"";}catch(e){return "";}})(),
  swing:(function(){try{return localStorage.getItem(KEY+"_swing")||DEFSWING;}catch(e){return DEFSWING;}})(),set:(function(){try{return localStorage.getItem(KEY+"_set")||DEFSET;}catch(e){return DEFSET;}})()};
-const trend={day:"all",club:"all",set:"all",swing:"all"},statsF={day:"all",clean:true,set:"all",swing:"all",venue:"all"},listF={day:"all",club:"all",set:"all",swing:"all",venue:"all"};
+const trend={day:"all",club:"all",set:"all",swing:"all",bag:"bag",tod:"all"},statsF={day:"all",clean:true,set:"all",swing:"all",venue:"all",bag:"bag",tod:"all"},listF={day:"all",club:"all",set:"all",swing:"all",venue:"all",bag:"all",tod:"all"};
 let sortK="date",sortAsc=true,activeView="vRange";
 
 function load(){
@@ -890,7 +914,7 @@ function delShot(id){DATA=DATA.filter(d=>d.id!=id);save();syncOpts();renderHero(
 
 /* ---- stats tab ---- */
 function renderStats(){
- const base=DATA.filter(x=>hasC(x)&&(statsF.day=="all"||x.date==statsF.day)&&(statsF.set=="all"||setOf(x)==statsF.set)&&(statsF.swing=="all"||swingOf(x)==statsF.swing)&&(statsF.venue=="all"||(x.venue||"")==statsF.venue)&&(!statsF.clean||x.status=="clean"));
+ const base=DATA.filter(x=>hasC(x)&&fBT(x,statsF)&&(statsF.day=="all"||x.date==statsF.day)&&(statsF.set=="all"||setOf(x)==statsF.set)&&(statsF.swing=="all"||swingOf(x)==statsF.swing)&&(statsF.venue=="all"||(x.venue||"")==statsF.venue)&&(!statsF.clean||x.status=="clean"));
  const c=base.map(x=>x.carry);
  const s7=base.filter(x=>x.club=="7er").map(x=>x.carry),s9=base.filter(x=>x.club=="9er").map(x=>x.carry);
  const gap=(s7.length&&s9.length)?(mean(s7)-mean(s9)):null;
@@ -931,7 +955,7 @@ function renderSetCompare(){
 }
 /* ---- trend tab ---- */
 function renderTrend(){
- const d=DATA.filter(x=>hasC(x)&&hasS(x)&&(trend.day=="all"||x.date==trend.day)&&(trend.club=="all"||x.club==trend.club)&&(trend.set=="all"||setOf(x)==trend.set)&&(trend.swing=="all"||swingOf(x)==trend.swing)&&x.status=="clean");
+ const d=DATA.filter(x=>hasC(x)&&hasS(x)&&fBT(x,trend)&&(trend.day=="all"||x.date==trend.day)&&(trend.club=="all"||x.club==trend.club)&&(trend.set=="all"||setOf(x)==trend.set)&&(trend.swing=="all"||swingOf(x)==trend.swing)&&x.status=="clean");
  const pts=d.map(x=>({x:x.speed,y:x.carry,c:colFor(x.club),club:x.club}));
  let line=null;if(d.length>2){const r=reg(d.map(x=>x.speed),d.map(x=>x.carry));const mn=Math.min(...d.map(x=>x.speed)),mx=Math.max(...d.map(x=>x.speed));line=[{x:mn,y:r.sl*mn+r.ic},{x:mx,y:r.sl*mx+r.ic}];$("#regHint").textContent=`R²=${r.r2.toFixed(3)} · ${r.sl.toFixed(2)} m pro km/h`;}else $("#regHint").textContent="";
  const clubs=sortClubs([...new Set(d.map(x=>x.club))]);
@@ -939,13 +963,13 @@ function renderTrend(){
  cScatter($("#cScatter"),pts,line);
  let sq=d;if(trend.club=="all"&&d.length){const cl=[...new Set(d.map(x=>x.club))].sort((a,b)=>d.filter(x=>x.club==b).length-d.filter(x=>x.club==a).length)[0];sq=d.filter(x=>x.club==cl);}
  cLine($("#cSeq"),sq.map(x=>x.carry),$("#tipSeq"));
- const base=DATA.filter(x=>hasC(x)&&x.status=="clean"&&(trend.set=="all"||setOf(x)==trend.set)&&(trend.swing=="all"||swingOf(x)==trend.swing));const cl2=[...new Set(base.map(x=>x.club))],L=[],V=[],C=[];
+ const base=DATA.filter(x=>hasC(x)&&x.status=="clean"&&fBT(x,trend)&&(trend.set=="all"||setOf(x)==trend.set)&&(trend.swing=="all"||swingOf(x)==trend.swing));const cl2=[...new Set(base.map(x=>x.club))],L=[],V=[],C=[];
  cl2.forEach(c=>{const a=base.filter(x=>x.club==c).map(x=>x.carry);if(a.length>1){L.push(c);V.push(pstd(a)/mean(a)*100);C.push(colFor(c));}});
  cHBar($("#cCv"),L,V,C);
 }
 /* ---- list tab ---- */
 function renderList(){
- let d=DATA.filter(x=>(listF.day=="all"||x.date==listF.day)&&(listF.club=="all"||x.club==listF.club)&&(listF.set=="all"||setOf(x)==listF.set)&&(listF.swing=="all"||swingOf(x)==listF.swing)&&(listF.venue=="all"||(x.venue||"")==listF.venue)).slice().sort((a,b)=>{if(sortK=="club"){const r=clubRank(a.club)-clubRank(b.club)||String(a.club).localeCompare(String(b.club),"de");return sortAsc?r:-r;}let x=sortK=="set"?setOf(a):a[sortK],y=sortK=="set"?setOf(b):b[sortK];if(typeof x=="string")return sortAsc?(""+x).localeCompare(y):(""+y).localeCompare(x);return sortAsc?x-y:y-x;});
+ let d=DATA.filter(x=>fBT(x,listF)&&(listF.day=="all"||x.date==listF.day)&&(listF.club=="all"||x.club==listF.club)&&(listF.set=="all"||setOf(x)==listF.set)&&(listF.swing=="all"||swingOf(x)==listF.swing)&&(listF.venue=="all"||(x.venue||"")==listF.venue)).slice().sort((a,b)=>{if(sortK=="club"){const r=clubRank(a.club)-clubRank(b.club)||String(a.club).localeCompare(String(b.club),"de");return sortAsc?r:-r;}let x=sortK=="set"?setOf(a):a[sortK],y=sortK=="set"?setOf(b):b[sortK];if(typeof x=="string")return sortAsc?(""+x).localeCompare(y):(""+y).localeCompare(x);return sortAsc?x-y:y-x;});
  $("#countLbl").textContent=`(${d.length})`;
  $("#tbl tbody").innerHTML=d.map(r=>`<tr><td>${r.date.slice(5)}${r.bay?`<span style="color:var(--mut);font-size:11px"> B${r.bay}</span>`:""}</td><td style="color:${colFor(r.club)}">${r.club}</td><td style="color:${setCol(setOf(r))}">${setShort(setOf(r))}</td><td>${r.series||""}${swingOf(r)!=DEFSWING?` <span style="color:${swingCol(swingOf(r))};font-size:11px">${swingShort(swingOf(r))}</span>`:""}</td><td>${r.speed!=null?r.speed:"–"}</td><td>${r.carry!=null?r.carry:"–"}</td><td><span class="tag ${r.status}">${r.status=="clean"?"ok":r.status=="outlier"?"Ausr.":"raus"}</span></td><td><span class="del" data-id="${r.id}">✕</span></td></tr>`).join("")||'<tr><td colspan="8" class="empty">Noch keine Schläge</td></tr>';
  $$("#tbl .del").forEach(e=>e.onclick=()=>delShot(e.dataset.id));
@@ -1258,9 +1282,9 @@ function med(a){const b=a.slice().sort((x,y)=>x-y);if(!b.length)return NaN;const
 
 /* ---- R10-Auswertung ---- */
 let r10F={club:"all"};
-function r10Pool(){return DATA.filter(x=>x.r&&(statsF.day=="all"||x.date==statsF.day));}
+function r10Pool(){return DATA.filter(x=>x.r&&fBT(x,statsF)&&(statsF.day=="all"||x.date==statsF.day));}
 function renderDir(){
- const base=DATA.filter(x=>(statsF.day=="all"||x.date==statsF.day)&&(statsF.set=="all"||setOf(x)==statsF.set)
+ const base=DATA.filter(x=>fBT(x,statsF)&&(statsF.day=="all"||x.date==statsF.day)&&(statsF.set=="all"||setOf(x)==statsF.set)
    &&(statsF.swing=="all"||swingOf(x)==statsF.swing)&&(statsF.venue=="all"||(x.venue||"")==statsF.venue));
  const wd=base.filter(x=>x.dir&&dirW(x.dir)!=null);
  if(!wd.length){$("#dirCard").style.display="none";return;}
@@ -1357,6 +1381,12 @@ $$("#statusSeg .seg").forEach(s=>{
 ["#iSpeed","#iCarry"].forEach(sel=>$(sel).addEventListener("focus",()=>{lastField=$(sel);}));
 lastField=$("#iCarry");
 $("#sDay").onchange=e=>{statsF.day=e.target.value;renderStats();};
+$("#sBag").onchange=e=>{statsF.bag=e.target.value;renderStats();};
+$("#sTod").onchange=e=>{statsF.tod=e.target.value;renderStats();};
+$("#tBag").onchange=e=>{trend.bag=e.target.value;renderTrend();};
+$("#tTod").onchange=e=>{trend.tod=e.target.value;renderTrend();};
+$("#lBag").onchange=e=>{listF.bag=e.target.value;renderList();};
+$("#lTod").onchange=e=>{listF.tod=e.target.value;renderList();};
 $("#sSet").onchange=e=>{statsF.set=e.target.value;renderStats();};
 $("#sSwing").onchange=e=>{statsF.swing=e.target.value;renderStats();};
 $("#sVenue").onchange=e=>{statsF.venue=e.target.value;renderStats();};
@@ -2393,73 +2423,203 @@ const WEDGE=[
  {k:"52°",ret:1,voll:[ 79.0, 75.0], u1030:[67.0,64.2], u9:null},
  {k:"56°",old:1,voll:[ 72.5, 70.8], u1030:[53.5,50.2], u9:null}
 ];
+/* ===================== v39: Aktuelles Bag · Tageszeit · Live-Schlaegerblatt ===================== */
+const BAG_SINCE="2026-09-28", TAKOMO_SINCE="2026-08-17", GRIP_SINCE="2026-09-01";
+/* Driver: bis und mit 17.08. sowie am 14.09. war es der R320, sonst der Qi (Angabe Andreia, 28.09.) */
+const drvModel=x=>(x.date<=TAKOMO_SINCE||x.date=="2026-09-14")?"R320":"Qi";
+const BAG_IRONS=["5er","6er","7er","8er","9er","PW"];
+/* Schluessel im aktuellen Bag oder null. R10-Importe tragen das Set, das beim Import gewaehlt war –
+   darum gilt bei R10-Eisen das Datum (Takomo ab 17.08.; der 7er vom 17.08. war der Srixon-Anker). */
+function bagKey(x){ const c=x&&x.club;
+ if(c=="Driver") return drvModel(x)=="Qi"?"Driver Qi":null;
+ if(c=="5W"||c=="4H"||c=="50°") return c;
+ if(c=="56°") return x.date>=BAG_SINCE?c:null;
+ if(BAG_IRONS.includes(c)){
+  if(x.src=="r10") return (x.date>=TAKOMO_SINCE&&!(x.date==TAKOMO_SINCE&&c=="7er"))?c:null;
+  return setOf(x)=="takomo_201"?c:null; }
+ return null; }
+const inBag=x=>bagKey(x)!=null;
+/* Tageszeit: Session = Schlaege eines Tages ohne Pause > 45 min; Start vor 12 Uhr = Vormittag.
+   Die Uhrzeit steckt in der Schlag-ID (R10: g+Zeitstempel, Range-Eingabe: s+Zeitstempel). */
+function shotTs(x){const m=String(x&&x.id||"").match(/^[gs](\d{13})/);return m?+m[1]:null;}
+let _todC=null,_todK="";
+function todMap(){
+ const key=DATA.length+"|"+(DATA.length?DATA[DATA.length-1].id:"")+"|"+(DATA.length?DATA[0].id:"");
+ if(_todC&&_todK==key)return _todC;
+ const byD={};DATA.forEach(x=>{const t=shotTs(x);if(t==null)return;(byD[x.date]=byD[x.date]||[]).push([t,x.id]);});
+ const M={};for(const d in byD){const a=byD[d].sort((p,q)=>p[0]-q[0]);let st=a[0][0],prev=st;
+  a.forEach(([t,id])=>{if(t-prev>45*60000)st=t;prev=t;M[id]=new Date(st).getHours()<12?"vm":"nm";});}
+ _todC=M;_todK=key;return M;}
+const todOf=x=>todMap()[x.id]||null;
+const fBT=(x,F)=>(!F.bag||F.bag=="all"||inBag(x))&&(!F.tod||F.tod=="all"||todOf(x)==F.tod);
+
+/* ---- Statistik-Helfer ---- */
+function qtl(a,p){const b=a.filter(v=>v!=null&&isFinite(v)).sort((x,y)=>x-y),n=b.length;if(!n)return NaN;const h=(n-1)*p,i=Math.floor(h);return i+1<n?b[i]+(h-i)*(b[i+1]-b[i]):b[i];}
+function upSig(v){const m=qtl(v,.5);return [m,1.4826*qtl(v.filter(x=>x>=m).map(x=>x-m),.5)];}
+function erfcNR(x){const z=Math.abs(x),t=1/(1+0.5*z);
+ const r=t*Math.exp(-z*z-1.26551223+t*(1.00002368+t*(0.37409196+t*(0.09678418+t*(-0.18628806+t*(0.27886807+t*(-1.13520398+t*(1.48851587+t*(-0.82215223+t*0.17087277)))))))));
+ return x>=0?r:2-r;}
+/* Mann-Whitney-U zweiseitig, Normalnaeherung mit Bindungs- und Stetigkeitskorrektur */
+function mwP(a,b){const n1=a.length,n2=b.length;if(!n1||!n2)return 1;
+ const all=a.map(v=>[v,0]).concat(b.map(v=>[v,1])).sort((x,y)=>x[0]-y[0]),N=all.length,rk=new Array(N);let tie=0;
+ for(let i=0;i<N;){let j=i;while(j+1<N&&all[j+1][0]==all[i][0])j++;const r=(i+j)/2+1;for(let k=i;k<=j;k++)rk[k]=r;const t=j-i+1;tie+=t*t*t-t;i=j+1;}
+ let R1=0;all.forEach((x,i)=>{if(!x[1])R1+=rk[i];});
+ const U1=R1-n1*(n1+1)/2,U=Math.max(U1,n1*n2-U1),sd=Math.sqrt(n1*n2/12*((N+1)-tie/(N*(N-1))));
+ if(!sd)return 1;return Math.min(1,erfcNR((U-n1*n2/2-0.5)/sd/Math.SQRT2));}
+const fmtD=d=>d.slice(8,10)+"."+d.slice(5,7)+".";
+function dRange(ds){const u=[...new Set(ds)].sort();if(!u.length)return "";return u.length<=2?u.map(fmtD).join(", "):fmtD(u[0])+"–"+fmtD(u[u.length-1]);}
+
+/* ---- Live-Schlaegerblatt aus den R10-Importen ---- */
+let _blC=null,_blK="";
+function bagLive(){
+ const key=DATA.length+"|"+(DATA.length?DATA[DATA.length-1].id:"");
+ if(_blC&&_blK==key)return _blC;
+ const G={};DATA.forEach(x=>{if(x.src=="r10"&&x.r){const k=bagKey(x);if(k)(G[k]=G[k]||[]).push(x);}});
+ const out={};
+ for(const k in G){const g=G[k];
+  const sfmax=/driver|w$/i.test(k)?1.52:/h$/i.test(k)?1.50:1.45;
+  const ok=g.filter(x=>x.carry!=null&&x.speed>0&&!(x.r.sm!=null&&x.r.sm>sfmax));
+  if(ok.length<3){out[k]={n:0,nt:g.length};continue;}
+  const per=x=>x.date>=GRIP_SINCE?"neu":"alt",qv=x=>x.carry/x.speed;
+  const [mB,sB]=upSig(ok.map(x=>x.speed)),[mP,sP]=upSig(ok.map(qv)),QS={};
+  ["alt","neu"].forEach(p=>{const u=ok.filter(x=>per(x)==p);QS[p]=u.length>=15?upSig(u.map(qv)):[mP,sP];});
+  const out1=(v,m,s)=>{if(!s)return false;const z=(v-m)/s;return z<-2.5||z>3.5;};
+  const clean=ok.filter(x=>!out1(x.speed,mB,sB)&&!out1(qv(x),...QS[per(x)]));
+  const aft=x=>todOf(x)!="vm",A=clean.filter(aft),M=clean.filter(x=>!aft(x));
+  const Aa=A.filter(x=>per(x)=="alt"),An=A.filter(x=>per(x)=="neu");
+  let gg,use,p=null;
+  if(!An.length){gg="alt";use=Aa;}else if(!Aa.length){gg="neu";use=An;}
+  else if(An.length<8){gg="alt";use=Aa;}
+  else{p=mwP(Aa.map(x=>x.carry),An.map(x=>x.carry));if(p<0.05){gg="neu";use=An;}else{gg="alt+neu";use=A;}}
+  const inP=x=>gg=="alt+neu"||per(x)==gg;
+  const R={n:use.length,nt:g.filter(x=>aft(x)&&inP(x)).length,g:gg,p,d:dRange(use.map(x=>x.date))};
+  if(use.length){const c=use.map(x=>x.carry),r=f=>qtl(use.map(x=>x.r[f]),.5);
+   Object.assign(R,{med:qtl(c,.5),gut:qtl(c,.75),p25:qtl(c,.25),cs:r("cs"),bs:qtl(use.map(x=>x.speed),.5),sm:r("sm"),la:r("la"),sp:r("sp"),ap:r("ap"),tot:r("tot"),
+    lat:qtl(use.map(x=>x.r.sd),.75)-qtl(use.map(x=>x.r.sd),.25)});}
+  /* Morgens gegen Nachmittag, gleicher Griff-Zeitraum */
+  for(const P of ["neu","alt","alle"]){const f=x=>P=="alle"||per(x)==P,m=M.filter(f),a=A.filter(f);
+   if(m.length>=5&&a.length>=5){R.mo=qtl(m.map(x=>x.carry),.5)-qtl(a.map(x=>x.carry),.5);R.mop=P;R.moN=m.length;break;}}
+  out[k]=R;}
+ /* Anlage (von Hand erfasste Schlaege, voller Schwung, Adlisberg oder ohne Angabe) */
+ const H={};DATA.forEach(x=>{if(x.src!="r10"&&x.status=="clean"&&x.carry!=null&&swingOf(x)=="voll"&&(!x.venue||x.venue=="adlisberg")){const k=bagKey(x);if(k)(H[k]=H[k]||[]).push(x);}});
+ for(const k in H){const c=H[k].map(x=>x.carry);if(c.length<5)continue;const R=out[k]||(out[k]={n:0});
+  Object.assign(R,{an:qtl(c,.5),anG:qtl(c,.75),anN:c.length,anD:dRange(H[k].map(x=>x.date))});}
+ _blC=out;_blK=key;return out;}
+/* Wedge-Matrix live: von Hand erfasste Schlaege je Schwungstufe (Anlagenanzeige), ab 3 Schlaegen */
+function wedgeLive(){const W={};
+ ["PW","50°","56°"].forEach(k=>{const w={k};let any=false;
+  [["voll","voll"],["1030","u1030"],["9uhr","u9"]].forEach(([s,f])=>{
+   const c=DATA.filter(x=>x.src!="r10"&&x.status=="clean"&&x.carry!=null&&swingOf(x)==s&&bagKey(x)==k).map(x=>x.carry);
+   w[f]=c.length>=3?[qtl(c,.5),qtl(c,.25),c.length]:null;if(w[f])any=true;});
+  W[k]=any?w:null;});
+ return W;}
+/* Zeilen des Schlaegerblatts: live (ab 5 sauberen Schlaegen) → sonst Festwert v37 → sonst leer */
+const BAGLIST=[
+ {k:"Driver Qi",l:"",m:"TaylorMade Qi"},
+ {k:"5W",l:"18°",m:"Callaway Quantum Max",x:"17–20° · Regular"},
+ {k:"4H",l:"21°",m:"Callaway Quantum Max Hybrid",x:"20–22° · Regular"},
+ {k:"5er",l:"25°"},{k:"6er",l:"28°"},{k:"7er",l:"31°"},{k:"8er",l:"36°"},{k:"9er",l:"41°"},{k:"PW",l:"46°"},
+ {k:"50°",l:"50°",m:"Cleveland RTZ Tour Satin",x:"Bounce 10 MID"},
+ {k:"56°",l:"56°",m:"Cleveland RTZ Tour Satin",x:"Bounce 10 MID"}];
+function bagRows(){const L=bagLive();
+ return BAGLIST.map(d=>{const v=L[d.k]||{},F=BAG.find(b=>b.k==d.k&&!b.ret);
+  if(v.n>=5)return Object.assign({},d,v,{fix:false});
+  if(F)return Object.assign({},d,F,{fix:true,nLive:v.n||0,an:v.an!=null?v.an:F.an,anN:v.an!=null?v.anN:F.anN});
+  return Object.assign({},d,{nw:1,nLive:v.n||0,an:v.an,anN:v.anN});});}
 /* Leiter: alles auf einer Liste, Skala je Eintrag mitgefuehrt */
+const PWGAP={lo:85.0,hi:106.5};
+function wedgeRows(){const W=wedgeLive(),rows=[];
+ const pw=W["PW"]||WEDGE.find(w=>w.k=="PW");rows.push(Object.assign({},pw,{k:"PW"}));
+ ["50°","56°"].forEach(k=>{if(W[k])rows.push(W[k]);});
+ if(!(W["56°"]&&W["56°"].voll)){const o=WEDGE.find(w=>w.old);rows.push(Object.assign({},o,{k:"56° alt"}));}
+ return rows;}
 function bagLadder(){
  const L=[];
- BAG.filter(b=>!b.ret).forEach(b=>L.push({name:b.k,sw:"voll",med:b.med,p25:b.p25,src:"R10"}));
- WEDGE.filter(w=>!w.ret).map(w=>w.old?Object.assign({},w,{k:w.k+" alt"}):w).forEach(w=>{
-  if(w.k!="PW"){ if(w.voll)L.push({name:w.k,sw:"voll",med:w.voll[0],p25:w.voll[1],src:"Anlage"}); }
+ bagRows().filter(b=>!b.nw&&isFinite(b.med)).forEach(b=>L.push({name:b.k,sw:"voll",med:b.med,p25:b.p25,src:"R10"}));
+ const WR=wedgeRows();const pw=WR[0];if(pw.voll&&pw.u1030){PWGAP.hi=pw.voll[0];PWGAP.lo=pw.u1030[0];}
+ WR.forEach(w=>{
+  if(w.k!="PW"&&w.voll)L.push({name:w.k,sw:"voll",med:w.voll[0],p25:w.voll[1],src:"Anlage"});
   if(w.u1030) L.push({name:w.k,sw:"10:30",med:w.u1030[0],p25:w.u1030[1],src:"Anlage"});
   if(w.u9)    L.push({name:w.k,sw:"9 Uhr",med:w.u9[0],  p25:w.u9[1],  src:"Anlage"});
  });
  return L.sort((a,b)=>b.med-a.med);
 }
-const PWGAP={lo:85.0,hi:106.5}; /* PW 10:30 bis PW voll, beides Anlage 20.08. */
 let bagM="med";
+const f0=v=>v!=null&&isFinite(v)?v.toFixed(0):"–",f1=v=>v!=null&&isFinite(v)?v.toFixed(1):"–";
 function renderBag(){
- const L=bagLadder();
+ const L=bagLadder(),rows=bagRows();
  /* Leiter */
  let h=`<tr><th>Schläger</th><th>Schwung</th><th>Median</th><th>p25</th><th>Skala</th></tr>`;
  L.forEach((x,i)=>{
   const prev=i?L[i-1]:null, gap=prev?prev.med-x.med:0;
   if(prev&&prev.src!=x.src)
    h+=`<tr><td colspan="5" style="color:var(--sky);font-size:11px;padding:5px 2px;line-height:1.45">`
-     +`Skalenwechsel · ab hier Anlagenanzeige<br><span style="color:var(--warn)">Echte Lücke ${PWGAP.lo.toFixed(1)}–${PWGAP.hi.toFixed(1)} m = ${(PWGAP.hi-PWGAP.lo).toFixed(1)} m, auf einer Skala gemessen</span></td></tr>`;
+     +`Skalenwechsel · ab hier Anlagenanzeige<br><span style="color:var(--warn)">Lücke PW 10:30 bis PW voll: ${PWGAP.lo.toFixed(1)}–${PWGAP.hi.toFixed(1)} m = ${(PWGAP.hi-PWGAP.lo).toFixed(1)} m, auf einer Skala gemessen</span></td></tr>`;
   else if(prev&&gap>=15) h+=`<tr><td colspan="5" style="color:var(--warn);font-size:11px;padding:4px 2px">▲ Lücke ${gap.toFixed(1)} m</td></tr>`;
   h+=`<tr><td style="font-weight:700">${x.name}</td><td style="color:var(--mut)">${x.sw}</td>
    <td class="num" style="font-weight:700">${x.med.toFixed(1)}</td><td class="num tracerTxt">${x.p25.toFixed(1)}</td>
    <td style="color:var(--mut);font-size:10.5px">${x.src}</td></tr>`;});
- h+=`<tr><td colspan="5" style="color:var(--sky);font-size:11px;padding:6px 2px;line-height:1.45">Noch nicht vermessen: ${BAGNEW.map(b=>b.k).join(", ")}. „56° alt“ = Werte des alten 56°, bis neue Daten da sind.</td></tr>`;
+ const miss=rows.filter(b=>b.nw).map(b=>b.k).filter(k=>!L.some(x=>x.name==k));
+ if(miss.length) h+=`<tr><td colspan="5" style="color:var(--sky);font-size:11px;padding:6px 2px;line-height:1.45">Noch nicht vermessen: ${miss.join(", ")}.${L.some(x=>x.name=="56° alt")?" „56° alt“ = Werte des alten 56°, bis neue Daten da sind.":""}</td></tr>`;
  $("#bagLadder").innerHTML=h;
- /* Eisen */
- h=`<tr><th>Schläger</th><th>typisch</th><th>gut</th><th>p25</th><th>n</th><th>Daten</th></tr>`;
- const ord=k=>clubRank(k)+(/r320/i.test(k)?.5:0);
- const rows=[...BAG.filter(b=>!b.ret),...BAGNEW.filter(n=>!BAG.some(b=>b.k==n.k)).map(n=>Object.assign({nw:1},n))].sort((a,b)=>ord(a.k)-ord(b.k));
+ /* Schlaegerblatt */
+ h=`<tr><th>Schläger</th><th>Loft</th><th>typisch</th><th>gut</th><th>p25</th><th>Streu.</th><th>n</th><th>Daten</th></tr>`;
  rows.forEach(b=>{
-  if(b.nw){h+=`<tr><td style="font-weight:700">${b.k}</td><td colspan="4" style="color:var(--sky);font-size:11.5px">noch keine Daten</td>
-   <td style="font-size:11px;line-height:1.35;color:var(--mut)">${b.m}<br>${b.l}${b.s?" · "+b.s:""}</td></tr>`;return;}
+  const lo=`<td class="num" style="color:var(--mut)">${b.l||"–"}</td>`;
+  if(b.nw){h+=`<tr><td style="font-weight:700">${b.k}</td>${lo}<td colspan="5" style="color:var(--sky);font-size:11.5px">noch keine R10-Daten${b.nLive?` (${b.nLive} saubere)`:""}${b.an!=null?`<br><span style="color:var(--mut)">Anlage: ${b.an.toFixed(0)} m (n ${b.anN})</span>`:""}</td>
+   <td style="font-size:11px;line-height:1.35;color:var(--mut)">${b.m||""}${b.x?"<br>"+b.x:""}</td></tr>`;return;}
   const w=b.g=="alt";
-  h+=`<tr><td style="font-weight:700">${b.k}</td>
-  <td class="num" style="font-weight:700">${b.med.toFixed(0)}</td><td class="num tracerTxt" style="font-weight:700">${b.gut.toFixed(0)}</td>
-  <td class="num" style="color:var(--mut)">${b.p25.toFixed(0)}</td>
+  h+=`<tr><td style="font-weight:700">${b.k}</td>${lo}
+  <td class="num" style="font-weight:700">${f0(b.med)}</td><td class="num tracerTxt" style="font-weight:700">${f0(b.gut)}</td>
+  <td class="num" style="color:var(--mut)">${f0(b.p25)}</td>
+  <td class="num" style="color:var(--mut)">${b.lat!=null?f0(b.lat):"–"}</td>
   <td class="num" style="color:var(--mut)">${b.n}</td>
-  <td style="font-size:11px;line-height:1.35;color:${w?"var(--warn)":"var(--mut)"}">${w?"alter Griff ⚠":b.g=="neu"?"neuer Griff":"alt+neu"}<br><span style="color:var(--mut)">${b.d}</span></td></tr>`;});
+  <td style="font-size:11px;line-height:1.35;color:${w?"var(--warn)":"var(--mut)"}">${w?"alter Griff ⚠":b.g=="neu"?"neuer Griff":"alt+neu"}<br><span style="color:var(--mut)">${b.d}${b.fix?" · Festwert":""}</span></td></tr>`;});
  const R=BAG.filter(b=>b.ret);
- if(R.length){h+=`<tr><td colspan="6" style="color:var(--mut);font-size:11px;padding:8px 2px 3px">Nicht mehr im Bag (seit 28.09.2026)</td></tr>`;
-  R.forEach(b=>{h+=`<tr style="opacity:.5"><td style="font-weight:700">${b.k}</td><td class="num">${b.med.toFixed(0)}</td><td class="num">${b.gut.toFixed(0)}</td>
-   <td class="num">${b.p25.toFixed(0)}</td><td class="num">${b.n}</td><td style="font-size:11px;color:var(--mut)">${b.d}</td></tr>`;});}
+ if(R.length){h+=`<tr><td colspan="8" style="color:var(--mut);font-size:11px;padding:8px 2px 3px">Nicht mehr im Bag (seit 28.09.2026)</td></tr>`;
+  R.forEach(b=>{h+=`<tr style="opacity:.5"><td style="font-weight:700">${b.k}</td><td></td><td class="num">${b.med.toFixed(0)}</td><td class="num">${b.gut.toFixed(0)}</td>
+   <td class="num">${b.p25.toFixed(0)}</td><td></td><td class="num">${b.n}</td><td style="font-size:11px;color:var(--mut)">${b.d}</td></tr>`;});}
  $("#bagIrons").innerHTML=h;
+ const nLive=rows.filter(b=>!b.nw&&!b.fix).length,nFix=rows.filter(b=>b.fix).length;
+ $("#bagSrc").innerHTML=nFix?`${nLive} Schläger live aus deinen R10-Importen, ${nFix} als Festwert (Stand 28.09.), weil in dieser App noch keine R10-Daten dazu liegen.`:`Alle Werte live aus deinen R10-Importen berechnet.`;
  /* Morgens */
  h=`<tr><th>Schläger</th><th>normal</th><th>morgens</th><th>Δ</th></tr>`;
- sortClubs(BAG.filter(b=>b.mo!=null).map(b=>b.k)).map(k=>BAG.find(b=>b.k==k)).forEach(b=>{
+ rows.filter(b=>!b.nw&&b.mo!=null).forEach(b=>{
   h+=`<tr><td style="font-weight:700">${b.k}</td><td class="num">${b.med.toFixed(0)}</td><td class="num">${(b.med+b.mo).toFixed(0)}</td>
   <td class="num" style="font-weight:700;color:${b.mo<=-8?"var(--warn)":"var(--mut)"}">${b.mo>0?"+":""}${b.mo.toFixed(0)}</td></tr>`;});
  $("#bagMorning").innerHTML=h;
  /* Anlage */
  h=`<tr><th>Schläger</th><th>R10</th><th>Anlage</th><th>Δ</th><th>n</th></tr>`;
- sortClubs(BAG.filter(b=>b.an!=null).map(b=>b.k)).map(k=>BAG.find(b=>b.k==k)).forEach(b=>{const dd=b.an-b.med;
+ rows.filter(b=>!b.nw&&b.an!=null).forEach(b=>{const dd=b.an-b.med;
   h+=`<tr><td style="font-weight:700">${b.k}</td><td class="num">${b.med.toFixed(0)}</td><td class="num">${b.an.toFixed(0)}</td>
   <td class="num" style="font-weight:700;color:${Math.abs(dd)>=8?"var(--warn)":"var(--mut)"}">${dd>0?"+":""}${dd.toFixed(0)}</td><td class="num" style="color:var(--mut)">${b.anN}</td></tr>`;});
  $("#bagAnlage").innerHTML=h;
-
- /* Wedge-Matrix */
+ /* Wedge-Matrix: aktuelle Wedges live, alte darunter */
+ const c=v=>v?`<b>${v[0].toFixed(1)}</b><br><span style="color:var(--tracer);font-size:10.5px">${v[1].toFixed(1)}</span>`:`<span style="color:var(--mut)">–</span>`;
  h=`<tr><th></th><th>voll</th><th>10:30</th><th>9 Uhr</th></tr>`;
- WEDGE.forEach(w=>{const c=v=>v?`<b>${v[0].toFixed(1)}</b><br><span style="color:var(--tracer);font-size:10.5px">${v[1].toFixed(1)}</span>`:`<span style="color:var(--mut)">–</span>`;
-  h+=`<tr${w.ret?' style="opacity:.5"':""}><td style="font-weight:700">${w.k}${w.ret||w.old?`<br><span style="font-weight:400;font-size:10.5px;color:var(--mut)">${w.ret?"nicht mehr im Bag":"alter Wedge"}</span>`:""}</td><td class="num">${c(w.voll)}</td><td class="num">${c(w.u1030)}</td><td class="num">${c(w.u9)}</td></tr>`;});
+ const W=wedgeLive();
+ [W["PW"]||Object.assign({},WEDGE.find(w=>w.k=="PW"),{fixw:1}),W["50°"]||{k:"50°",none:1},W["56°"]||{k:"56°",none:1}].forEach(w=>{
+  if(w.none){h+=`<tr><td style="font-weight:700">${w.k}</td><td colspan="3" style="color:var(--sky);font-size:11.5px">noch keine Daten</td></tr>`;return;}
+  h+=`<tr><td style="font-weight:700">${w.k}</td><td class="num">${c(w.voll)}</td><td class="num">${c(w.u1030)}</td><td class="num">${c(w.u9)}</td></tr>`;});
+ h+=`<tr><td colspan="4" style="color:var(--mut);font-size:11px;padding:8px 2px 3px">Alte Wedges (bis 27.09., Anlage 20.08.)</td></tr>`;
+ WEDGE.filter(w=>w.k!="PW").forEach(w=>{h+=`<tr style="opacity:.5"><td style="font-weight:700">${w.k}</td><td class="num">${c(w.voll)}</td><td class="num">${c(w.u1030)}</td><td class="num">${c(w.u9)}</td></tr>`;});
  h+=`<tr><td colspan="4" style="color:var(--mut);font-size:10.5px;padding-top:6px">fett = Median, grün = p25, beides Carry in Metern</td></tr>`;
  $("#bagWedge").innerHTML=h;
  bagSuggest();
 }
+/* Druckansicht A4 quer */
+function bagPrint(){
+ const rows=bagRows(),t=new Date();
+ const cell=v=>`<td>${v}</td>`;
+ let h=`<h1>Schlägerblatt</h1><div class="ps">Stand ${t.toLocaleDateString("de-CH")} · Garmin R10, nur saubere Schläge, nur Nachmittags-Sessions · Mediane</div>
+ <table><thead><tr><th>Schläger</th><th>Loft</th><th>Carry typisch</th><th>Carry gut</th><th>p25</th><th>Total</th><th>Kopf km/h</th><th>Ball km/h</th><th>Smash</th><th>Abflug</th><th>Spin</th><th>Scheitel m</th><th>Seitl. Streuung m</th><th>n</th></tr></thead><tbody>`;
+ rows.forEach(b=>{
+  if(b.nw){h+=`<tr class="nw"><td>${b.k}</td><td>${b.l||""}</td><td colspan="12">noch keine Daten – ${b.m||""} ${b.x||""}</td></tr>`;return;}
+  h+=`<tr><td>${b.k}</td><td>${b.l||""}</td><td class="b">${f0(b.med)}</td><td>${f0(b.gut)}</td><td>${f0(b.p25)}</td><td>${f0(b.tot)}</td><td>${f0(b.cs)}</td><td>${f0(b.bs)}</td>`
+   +`<td>${b.sm!=null&&isFinite(b.sm)?b.sm.toFixed(2):"–"}</td><td>${b.la!=null&&isFinite(b.la)?b.la.toFixed(1)+"°":"–"}</td><td>${b.sp!=null&&isFinite(b.sp)?Math.round(b.sp/100)*100:"–"}</td><td>${f0(b.ap)}</td><td>${b.lat!=null?f0(b.lat):"–"}</td><td>${b.n}</td></tr>`;});
+ h+=`</tbody></table><div class="pf">Gut = 75 %-Wert (jeder vierte saubere Schlag fliegt so weit oder weiter). Seitliche Streuung = Breite, in der die mittleren 50 % landen. Lofts Eisen: Herstellerangaben Takomo 201 MKII.${rows.some(b=>b.fix)?" Zeilen ohne Detailwerte: Festwert, in dieser App noch keine R10-Daten.":""}</div>`;
+ $("#printSheet").innerHTML=h;window.print();}
+
 function bagSuggest(){
  const t=parseFloat($("#bagD").value), out=$("#bagOut");
  if(isNaN(t)||t<=0){out.innerHTML="Distanz eingeben";out.style.color="var(--mut)";return;}
@@ -2487,6 +2647,7 @@ function bagSuggest(){
  out.style.color="var(--tracer)";
 }
 $("#bagD").oninput=bagSuggest;
+$("#bagPrintBtn").onclick=bagPrint;
 $$("#bagMode .seg").forEach(el=>el.onclick=()=>{bagM=el.dataset.m;
  $$("#bagMode .seg").forEach(o=>o.classList.toggle("on",o==el));bagSuggest();});
 $("#bagBack").onclick=()=>rdShow(rdCur?"play":"home");
@@ -2672,5 +2833,6 @@ buildChips();syncOpts();renderHero();renderRecent();renderPlan();renderPlanStrip
 if(_migrated!==false)toast("Auf eingebaute "+DATA.length+" Schläge aktualisiert (alter Stand gesichert)");
 if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
+<div id="printSheet"></div>
 </body>
 </html>
