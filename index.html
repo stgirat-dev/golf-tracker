@@ -582,7 +582,7 @@ canvas{width:100%;height:230px;display:block}
    </div>
 
    <div class="card">
-    <div class="lbl" style="margin-bottom:2px">Eisen und Driver</div>
+    <div class="lbl" style="margin-bottom:2px">Schlägerblatt</div>
     <div class="scroll"><table class="tbl cmp" id="bagIrons"></table></div>
     <div class="hint"><b>typisch</b> = Median der sauberen Schläge, <b style="color:var(--tracer)">gut</b> = oberes Viertel (p75), also deine Weite bei einem guten Schwung. p25 = was auch ein etwas schwächerer sauberer Schlag noch trägt. Garmin R10, Eisen Takomo 201 MKII, nur Sessions am Nachmittag/Abend. <span style="color:var(--warn)">⚠ alter Griff</span>: mit dem Hammer-Grip nachmittags noch zu wenig gemessen.</div>
     <details style="margin-top:8px"><summary class="hint" style="cursor:pointer;color:var(--sky)">Methode</summary><div class="rdnote" style="margin-top:6px">
@@ -609,7 +609,7 @@ canvas{width:100%;height:230px;display:block}
    <div class="card">
     <div class="lbl" style="margin-bottom:2px">Wedge-Matrix</div>
     <div class="scroll"><table class="tbl cmp" id="bagWedge"></table></div>
-    <div class="hint">Anlage Adlisberg Box 4, 20.08.2026, eine Session, eine Skala. 9 Uhr ist beim 52° und 56° nicht vermessen.</div>
+    <div class="hint">Alte Wedges (52°/56°, bis 27.09.). Anlage Adlisberg Box 4, 20.08.2026, eine Session, eine Skala. 9 Uhr ist beim 52° und 56° nicht vermessen. Die neuen Cleveland RTZ 50°/56° sind noch nicht vermessen.</div>
    </div>
 
    <div class="card">
@@ -676,11 +676,14 @@ canvas{width:100%;height:230px;display:block}
 <div class="toast" id="toast"></div>
 
 <script>
-const APPVER="v37";
+const APPVER="v38";
 const KEY="golfTrackerV1";
 const SEEDVER="2026-07-27";
-const CLUBS=["Driver","3er","4er","5er","6er","7er","8er","9er","PW","52°","56°","58°","60°"];
-const CLUBCOL={"Driver":"#ff6b6b","3er":"#ff8e6b","4er":"#ffb454","5er":"#ffd454","6er":"#a6e84e","7er":"#cdf24e","8er":"#5cc8ff","9er":"#7ad6ff","PW":"#b79bff","52°":"#86e8b0","56°":"#5fd3b8","58°":"#5fd38d","60°":"#4ec2a0"};/* ---- Sets (Schlaegersaetze) ---- */
+const CLUBS=["Driver","5W","4H","5er","6er","7er","8er","9er","PW","50°","56°"];
+/* v38: seit 28.09.2026 nicht mehr im Bag. Alte Schlaege bleiben erhalten und auswertbar,
+   nur die Erfassungs-Chips blenden sie aus (ausser der Schlaeger ist gerade gewaehlt). */
+const RETIRED=["3er","4er","52°","58°","60°"];
+const CLUBCOL={"Driver":"#ff6b6b","5W":"#ff8e6b","4H":"#ffa05c","50°":"#9be8a0","3er":"#ff8e6b","4er":"#ffb454","5er":"#ffd454","6er":"#a6e84e","7er":"#cdf24e","8er":"#5cc8ff","9er":"#7ad6ff","PW":"#b79bff","52°":"#86e8b0","56°":"#5fd3b8","58°":"#5fd38d","60°":"#4ec2a0"};/* ---- Sets (Schlaegersaetze) ---- */
 const DEFSET="qi";
 const SETS={qi:{name:"TaylorMade Qi",short:"Qi",col:"#cdf24e"},
  srixon_i701:{name:"Srixon I-701",short:"Srixon",col:"#5cc8ff"},
@@ -813,7 +816,7 @@ function buildDirChips(){
 }
 function buildChips(){
  buildSetChips();buildDirChips();
- const clubs=sortClubs([...new Set([...CLUBS,...DATA.map(d=>d.club)])]);
+ const clubs=sortClubs([...new Set([...CLUBS,...DATA.map(d=>d.club)])]).filter(c=>!RETIRED.includes(c)||c==cur.club);
  $("#clubChips").innerHTML=clubs.map(c=>`<div class="chip ${c==cur.club?"on":""}" data-c="${c}">${c}</div>`).join("")+`<div class="chip add" id="addClub">+</div>`;
  $$("#clubChips .chip[data-c]").forEach(el=>el.onclick=()=>{cur.club=el.dataset.c;buildChips();renderHero();renderRecent();refocus();});
  $("#addClub").onclick=()=>{const n=prompt("Neuer Schläger (z.B. 4er, 60°)");if(n){cur.club=n.trim();buildChips();renderHero();}};
@@ -1152,7 +1155,7 @@ $("#planRestart").onclick=()=>{if(confirm("Zähler auf null setzen? Die erfasste
 /* ================= Garmin R10 · CSV-Import =================
    Der Export der Garmin-Golf-App: Zeile 1 Spaltennamen, Zeile 2 Einheiten,
    ab Zeile 3 je ein Schlag. Deutsch und englisch werden beide erkannt. */
-const R10CLUB={"driver":"Driver","holz 3":"3er Holz","3 wood":"3er Holz","holz 5":"5er Holz","5 wood":"5er Holz",
+const R10CLUB={"driver":"Driver","holz 3":"3W","3 wood":"3W","holz 5":"5W","5 wood":"5W",
  "eisen 3":"3er","3 iron":"3er","eisen 4":"4er","4 iron":"4er","eisen 5":"5er","5 iron":"5er",
  "eisen 6":"6er","6 iron":"6er","eisen 7":"7er","7 iron":"7er","eisen 8":"8er","8 iron":"8er",
  "eisen 9":"9er","9 iron":"9er","pitching-wedge":"PW","pitching wedge":"PW",
@@ -1190,6 +1193,17 @@ function r10Date(v){
  const d=new Date(y,+m[1]-1,+m[2],+m[4],+m[5],+m[6]);
  const iso=y+"-"+String(+m[1]).padStart(2,"0")+"-"+String(+m[2]).padStart(2,"0");
  return {iso,ts:d.getTime()};}
+/* v38: Hoelzer/Hybride in jeder Schreibweise, Wedges nach Loft.
+   Gap-Wedge war bis 27.09. das 52°, ab dem 28.09.2026 (Kauf RTZ) das 50°. */
+function r10Club(raw,iso){
+ const s=String(raw||"").toLowerCase().trim(); let m;
+ if(/^gap[- ]?wedge$/.test(s)) return iso>="2026-09-28"?"50°":"52°";
+ if(R10CLUB[s]) return R10CLUB[s];
+ if((m=s.match(/hybrid\s*(\d)/))||(m=s.match(/(\d)\s*-?\s*hybrid/))||(m=s.match(/^(\d)\s*h$/))) return m[1]+"H";
+ if((m=s.match(/holz\s*(\d)/))||(m=s.match(/(\d)\s*-?\s*(wood|holz)/))||(m=s.match(/^(\d)\s*w$/))) return m[1]+"W";
+ if((m=s.match(/(\d{2})\s*°/))) return m[1]+"°";
+ return null;
+}
 function importR10(text){
  const rows=csvRows(text);
  if(rows.length<3)return {err:"Datei enthält keine Schläge"};
@@ -1205,12 +1219,13 @@ function importR10(text){
   const r=rows[i];const dt=r10Date(r[idx.date]);
   if(!dt)continue;                                   /* Einheitenzeile und Leerzeilen */
   const raw=(r[idx.club]||"").trim();
-  const club=R10CLUB[raw.toLowerCase()]||raw;
-  if(!R10CLUB[raw.toLowerCase()])unknown[raw]=1;
+  const club=r10Club(raw,dt.iso);
+  if(!club){unknown[raw]=1;}
+  const clubN=club||raw;
   const id="g"+dt.ts;
   if(have.has(id)){skip++;continue;}
   have.add(id);
-  add.push({id,date:dt.iso,club,series:"R10",
+  add.push({id,date:dt.iso,club:clubN,series:"R10",
    speed:rd(num(r,"bs")),carry:rd(num(r,"ca")),
    /* In der Garmin-App markierte Schlaege ("BAD") uebernehmen wir als Ausreisser:
       sie bleiben sichtbar und zaehlen mit, sind aber filterbar. */
@@ -1847,7 +1862,9 @@ async function bbRemove(id){ if(!confirm("Birdiebook-Bilder von diesem Gerät l�
    clubRank: Driver, Hoelzer (3W), Hybride (4H), Eisen (3er/4I/Eisen 4), PW,
    Wedges nach Loft (50/52/56/60 Grad), Putter. Unbekannte Namen ans Ende. */
 /* ===================== v35: Strafursache, Abschlag, Körper, Backup ===================== */
-const TEE_CLUBS=["Driver","4er","5er","6er","7er","8er","9er","PW","52°","56°"];
+const TEE_CLUBS=["Driver","5W","4H","5er","6er","7er","8er","9er","PW","50°","56°"];
+/* alte Eintraege (4er, 52°) bleiben sichtbar und waehlbar */
+const teeList=e=>(e&&e.tc&&!TEE_CLUBS.includes(e.tc))?[...TEE_CLUBS,e.tc]:TEE_CLUBS;
 const PEN_C=[["W","Wasser"],["A","Aus"],["V","Verloren"],["U","Unspielbar"]];
 const PEN_N={W:"Wasser",A:"Aus",V:"Verloren",U:"Unspielbar","?":"ohne Angabe"};
 const BW_N=["ok","leicht","stark"];
@@ -1860,7 +1877,7 @@ function renderRdX(){ const box=$("#rdX"); if(!box)return;
  if(!rdCur||nBalls(rdCur)==2){box.innerHTML="";$("#rdXc").style.display="none";return;} $("#rdXc").style.display="";
  const e=rdCurE(); pcSync(e);
  const cnt=k=>(e.pc||[]).filter(x=>x==k).length, unk=cnt("?");
- box.innerHTML=`<div class="xrow"><div class="inlbl">Abschlag mit</div><div class="xchips">${TEE_CLUBS.map(c=>`<div class="xc ${e.tc==c?"on":""}" data-tc="${c}">${c}</div>`).join("")}</div></div>
+ box.innerHTML=`<div class="xrow"><div class="inlbl">Abschlag mit</div><div class="xchips">${teeList(e).map(c=>`<div class="xc ${e.tc==c?"on":""}" data-tc="${c}">${c}</div>`).join("")}</div></div>
   <div class="xrow"><div class="inlbl">Strafschlag wegen <span style="opacity:.65">· tippen = +1 Strafschlag, − oben nimmt den letzten zurück</span></div>
    <div class="xchips">${PEN_C.map(p=>`<div class="xc ${cnt(p[0])?"bad":""}" data-pc="${p[0]}">${p[1]}${cnt(p[0])?" ×"+cnt(p[0]):""}</div>`).join("")}</div>
    ${unk?`<div class="hint" style="margin-top:5px;color:var(--warn)">${unk} Strafschl${unk==1?"ag":"äge"} ohne Ursache – Ursache antippen</div>`:""}</div>
@@ -2171,7 +2188,7 @@ function renderRdTable(){
    html+=`<tr class="${i==rdHole?"hl":""}"><td class="num">${r.n}</td><td class="num">${r.par}</td><td class="num" style="color:var(--mut)">${r.idx}</td><td class="num tracerTxt">${r.vor}</td>`
    +cin(r.n,"s",r.s)+cin(r.n,"p",r.p)+cin(r.n,"pen",r.pen)
    +`<td class="num pcell" data-b="1" style="font-weight:800">${r.pts==null?"–":r.pts}</td>`
-   +`<td>${xSel(r.n,"tc",null,e.tc||"",[["","–"]].concat(TEE_CLUBS.map(c=>[c,c])))}</td>`
+   +`<td>${xSel(r.n,"tc",null,e.tc||"",[["","–"]].concat(teeList(e).map(c=>[c,c])))}</td>`
    +`<td class="pccell" data-h="${r.n}">${pcCellInner(e)}</td>`
    +`<td>${xSel(r.n,"bw",null,e.bw==null?"":String(e.bw),[["","–"],["0","ok"],["1","leicht"],["2","stark"]])}</td></tr>`; });
   html+=`<tr><td style="font-weight:800">Total</td><td class="num" style="font-weight:800">${S.parAll}</td><td></td><td class="num" style="font-weight:800">${S.ch}</td>
@@ -2354,8 +2371,8 @@ function ceValidate(){
    R10-Radar und Anlagenanzeige, eine Live-Rechnung wuerde die Skalen vermengen. */
 const BAG=[
  {k:"Driver Qi",med:209.0,gut:214.1,p25:201.5,n:33,nt:48,src:"R10",g:"neu",d:"23.09."},
- {k:"Driver Srixon",med:217.8,gut:224.8,p25:214.2,n:10,nt:11,src:"R10",g:"neu",d:"14.09.",mo:-26.5,mop:"neu"},
- {k:"4er",med:154.5,gut:174.0,p25:141.9,n:20,nt:25,src:"R10",g:"alt",d:"17.08., 19.08.",mo:3.0,mop:"alt",an:178.0,anG:180.5,anN:10,anD:"17.08., 08.09."},
+ {k:"Driver R320",ret:1,med:217.8,gut:224.8,p25:214.2,n:10,nt:11,src:"R10",g:"neu",d:"14.09.",mo:-26.5,mop:"neu"},
+ {k:"4er",ret:1,med:154.5,gut:174.0,p25:141.9,n:20,nt:25,src:"R10",g:"alt",d:"17.08., 19.08.",mo:3.0,mop:"alt",an:178.0,anG:180.5,anN:10,anD:"17.08., 08.09."},
  {k:"5er",med:165.2,gut:172.6,p25:159.7,n:19,nt:25,src:"R10",g:"alt",d:"17.08., 19.08.",an:171.0,anG:175.5,anN:14,anD:"17.08.–08.09."},
  {k:"6er",med:153.0,gut:161.4,p25:137.5,n:40,nt:52,src:"R10",g:"alt+neu",d:"17.08.–14.09.",mo:-17.1,mop:"neu",an:173.0,anG:179.5,anN:27,anD:"17.08., 29.08."},
  {k:"7er",med:149.8,gut:157.4,p25:135.2,n:48,nt:65,src:"R10",g:"alt+neu",d:"19.08.–23.09.",mo:-18.9,mop:"neu",an:150.0,anG:158.0,anN:45,anD:"17.08.–08.09."},
@@ -2363,16 +2380,24 @@ const BAG=[
  {k:"9er",med:124.3,gut:130.3,p25:119.3,n:12,nt:17,src:"R10",g:"neu",d:"14.09., 23.09.",mo:-16.4,mop:"neu",an:124.0,anG:130.0,anN:62,anD:"17.08.–29.08."},
  {k:"PW",med:105.1,gut:118.6,p25:101.0,n:14,nt:14,src:"R10",g:"alt",d:"19.08.",mo:3.0,mop:"alt",an:108.0,anG:112.0,anN:25,anD:"20.08.–08.09."}
 ];
+/* v38: neu gekauft 28.09.2026 (XL Golf Rotkreuz) – noch keine Messwerte */
+const BAGNEW=[
+ {k:"5W", m:"Callaway Quantum Max", l:"18° (17–20°)", s:"Regular"},
+ {k:"4H", m:"Callaway Quantum Max Hybrid", l:"21° (20–22°)", s:"Regular"},
+ {k:"50°",m:"Cleveland RTZ Tour Satin", l:"50° · Bounce 10 MID", s:""},
+ {k:"56°",m:"Cleveland RTZ Tour Satin", l:"56° · Bounce 10 MID", s:""}
+];
+/* Wedge-Matrix: die alten Wedges (bis 27.09.). ret = nicht mehr im Bag. */
 const WEDGE=[
  {k:"PW", voll:[106.5,101.8], u1030:[85.0,82.2], u9:[64.5,62.0]},
- {k:"52°",voll:[ 79.0, 75.0], u1030:[67.0,64.2], u9:null},
- {k:"56°",voll:[ 72.5, 70.8], u1030:[53.5,50.2], u9:null}
+ {k:"52°",ret:1,voll:[ 79.0, 75.0], u1030:[67.0,64.2], u9:null},
+ {k:"56°",old:1,voll:[ 72.5, 70.8], u1030:[53.5,50.2], u9:null}
 ];
 /* Leiter: alles auf einer Liste, Skala je Eintrag mitgefuehrt */
 function bagLadder(){
  const L=[];
- BAG.forEach(b=>L.push({name:b.k,sw:"voll",med:b.med,p25:b.p25,src:"R10"}));
- WEDGE.forEach(w=>{
+ BAG.filter(b=>!b.ret).forEach(b=>L.push({name:b.k,sw:"voll",med:b.med,p25:b.p25,src:"R10"}));
+ WEDGE.filter(w=>!w.ret).map(w=>w.old?Object.assign({},w,{k:w.k+" alt"}):w).forEach(w=>{
   if(w.k!="PW"){ if(w.voll)L.push({name:w.k,sw:"voll",med:w.voll[0],p25:w.voll[1],src:"Anlage"}); }
   if(w.u1030) L.push({name:w.k,sw:"10:30",med:w.u1030[0],p25:w.u1030[1],src:"Anlage"});
   if(w.u9)    L.push({name:w.k,sw:"9 Uhr",med:w.u9[0],  p25:w.u9[1],  src:"Anlage"});
@@ -2394,15 +2419,25 @@ function renderBag(){
   h+=`<tr><td style="font-weight:700">${x.name}</td><td style="color:var(--mut)">${x.sw}</td>
    <td class="num" style="font-weight:700">${x.med.toFixed(1)}</td><td class="num tracerTxt">${x.p25.toFixed(1)}</td>
    <td style="color:var(--mut);font-size:10.5px">${x.src}</td></tr>`;});
+ h+=`<tr><td colspan="5" style="color:var(--sky);font-size:11px;padding:6px 2px;line-height:1.45">Noch nicht vermessen: ${BAGNEW.map(b=>b.k).join(", ")}. „56° alt“ = Werte des alten 56°, bis neue Daten da sind.</td></tr>`;
  $("#bagLadder").innerHTML=h;
  /* Eisen */
  h=`<tr><th>Schläger</th><th>typisch</th><th>gut</th><th>p25</th><th>n</th><th>Daten</th></tr>`;
- sortClubs(BAG.map(b=>b.k)).map(k=>BAG.find(b=>b.k==k)).forEach(b=>{const w=b.g=="alt";
+ const ord=k=>clubRank(k)+(/r320/i.test(k)?.5:0);
+ const rows=[...BAG.filter(b=>!b.ret),...BAGNEW.filter(n=>!BAG.some(b=>b.k==n.k)).map(n=>Object.assign({nw:1},n))].sort((a,b)=>ord(a.k)-ord(b.k));
+ rows.forEach(b=>{
+  if(b.nw){h+=`<tr><td style="font-weight:700">${b.k}</td><td colspan="4" style="color:var(--sky);font-size:11.5px">noch keine Daten</td>
+   <td style="font-size:11px;line-height:1.35;color:var(--mut)">${b.m}<br>${b.l}${b.s?" · "+b.s:""}</td></tr>`;return;}
+  const w=b.g=="alt";
   h+=`<tr><td style="font-weight:700">${b.k}</td>
   <td class="num" style="font-weight:700">${b.med.toFixed(0)}</td><td class="num tracerTxt" style="font-weight:700">${b.gut.toFixed(0)}</td>
   <td class="num" style="color:var(--mut)">${b.p25.toFixed(0)}</td>
   <td class="num" style="color:var(--mut)">${b.n}</td>
   <td style="font-size:11px;line-height:1.35;color:${w?"var(--warn)":"var(--mut)"}">${w?"alter Griff ⚠":b.g=="neu"?"neuer Griff":"alt+neu"}<br><span style="color:var(--mut)">${b.d}</span></td></tr>`;});
+ const R=BAG.filter(b=>b.ret);
+ if(R.length){h+=`<tr><td colspan="6" style="color:var(--mut);font-size:11px;padding:8px 2px 3px">Nicht mehr im Bag (seit 28.09.2026)</td></tr>`;
+  R.forEach(b=>{h+=`<tr style="opacity:.5"><td style="font-weight:700">${b.k}</td><td class="num">${b.med.toFixed(0)}</td><td class="num">${b.gut.toFixed(0)}</td>
+   <td class="num">${b.p25.toFixed(0)}</td><td class="num">${b.n}</td><td style="font-size:11px;color:var(--mut)">${b.d}</td></tr>`;});}
  $("#bagIrons").innerHTML=h;
  /* Morgens */
  h=`<tr><th>Schläger</th><th>normal</th><th>morgens</th><th>Δ</th></tr>`;
@@ -2420,7 +2455,7 @@ function renderBag(){
  /* Wedge-Matrix */
  h=`<tr><th></th><th>voll</th><th>10:30</th><th>9 Uhr</th></tr>`;
  WEDGE.forEach(w=>{const c=v=>v?`<b>${v[0].toFixed(1)}</b><br><span style="color:var(--tracer);font-size:10.5px">${v[1].toFixed(1)}</span>`:`<span style="color:var(--mut)">–</span>`;
-  h+=`<tr><td style="font-weight:700">${w.k}</td><td class="num">${c(w.voll)}</td><td class="num">${c(w.u1030)}</td><td class="num">${c(w.u9)}</td></tr>`;});
+  h+=`<tr${w.ret?' style="opacity:.5"':""}><td style="font-weight:700">${w.k}${w.ret||w.old?`<br><span style="font-weight:400;font-size:10.5px;color:var(--mut)">${w.ret?"nicht mehr im Bag":"alter Wedge"}</span>`:""}</td><td class="num">${c(w.voll)}</td><td class="num">${c(w.u1030)}</td><td class="num">${c(w.u9)}</td></tr>`;});
  h+=`<tr><td colspan="4" style="color:var(--mut);font-size:10.5px;padding-top:6px">fett = Median, grün = p25, beides Carry in Metern</td></tr>`;
  $("#bagWedge").innerHTML=h;
  bagSuggest();
@@ -2445,7 +2480,8 @@ function bagSuggest(){
  if(t>PWGAP.lo&&t<PWGAP.hi)
   extra=`<br><span style="color:var(--warn)">Du liegst in der Lücke ${PWGAP.lo}–${PWGAP.hi} m. Kein voller Schläger passt — 11-Uhr-PW ist noch nicht vermessen.</span>`;
  else if(up&&dn&&up.src==dn.src&&(up.med-dn.med)>=15&&t>dn.med&&t<up.med)
-  extra=`<br><span style="color:var(--warn)">Du liegst in der Lücke ${dn.med.toFixed(0)}–${up.med.toFixed(0)} m.</span>`;
+  extra=`<br><span style="color:var(--warn)">Du liegst in der Lücke ${dn.med.toFixed(0)}–${up.med.toFixed(0)} m.</span>`
+   +(/driver/i.test(up.name)?`<br><span style="color:var(--sky)">Dafür sind 5W und 4H gedacht – noch keine Messwerte.</span>`:"");
  out.innerHTML=`<b style="font-size:18px">${a.name} ${a.sw}</b> — Median ${a.med.toFixed(1)} m`
   +`<br><span style="color:var(--mut)">${d>=0?"+":""}${d.toFixed(1)} m gegenüber dem Ziel · p25 ${a.p25.toFixed(1)}</span>`+extra;
  out.style.color="var(--tracer)";
