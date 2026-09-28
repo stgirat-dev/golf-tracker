@@ -10,6 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%230d1411%22/%3E%3Cpath d=%22M14 78 Q50 6 88 60%22 fill=%22none%22 stroke=%22%23cdf24e%22 stroke-width=%226%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2288%22 cy=%2260%22 r=%227%22 fill=%22%23cdf24e%22/%3E%3C/svg%3E">
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
 :root{
  --bg:#0d1411;--s1:#14201a;--s2:#1b2a22;--line:#26352c;
@@ -700,7 +701,7 @@ canvas{width:100%;height:230px;display:block}
 <div class="toast" id="toast"></div>
 
 <script>
-const APPVER="v39";
+const APPVER="v40";
 const KEY="golfTrackerV1";
 const SEEDVER="2026-07-27";
 const CLUBS=["Driver","5W","4H","5er","6er","7er","8er","9er","PW","50°","56°"];
@@ -1403,18 +1404,34 @@ $("#lVenue").onchange=e=>{listF.venue=e.target.value;renderList();};
 $$("#tbl th[data-k]").forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(sortK==k)sortAsc=!sortAsc;else{sortK=k;sortAsc=true;}renderList();});
 $("#bExport").onclick=()=>{const b=new Blob([JSON.stringify(DATA,null,2)],{type:"application/json"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="golf_"+today()+".json";a.click();URL.revokeObjectURL(u);toast("Export erstellt");};
 $("#r10Club").onchange=e=>{r10F.club=e.target.value;renderR10();};
+function r10ImportText(t){const r=importR10(t);
+ if(r.err){toast(r.err);return r;}
+ show("vStats");
+ let m=r.n+" Schläge übernommen";
+ if(r.skip)m+=" · "+r.skip+" schon vorhanden";
+ if(r.bad)m+=" · "+r.bad+" mit fraglicher Schlägerkopfmessung";
+ toast(m);
+ if(r.unknown&&r.unknown.length)setTimeout(()=>toast("Unbekannter Schläger: "+r.unknown.join(", ")),2600);
+ return r;}
+/* v40: Teilen-Menue (Android). Der Service Worker legt geteilte Dateien im Cache "tracer-share" ab
+   und oeffnet die App mit ?share=1. Nur R10-CSV wird uebernommen – ein JSON-Import ersetzt alle
+   Daten und bleibt deshalb bewusst beim Knopf «Import Schläge». */
+async function shareReceive(){
+ if(!/[?&]share=1/.test(location.search))return;
+ try{history.replaceState(null,"",location.pathname);}catch(e){}
+ try{const c=await caches.open("tracer-share"),ks=await c.keys();
+  if(!ks.length){toast("Geteilte Datei nicht gefunden");return;}
+  const tx=[];for(const k of ks){const r=await c.match(k);tx.push([decodeURIComponent(r.headers.get("X-Name")||""),await r.text()]);await c.delete(k);}
+  const csv=tx.filter(([n,t])=>/\.csv$/i.test(n)||/schl\u00e4gerart|club type/i.test(t.slice(0,400)));
+  if(!csv.length){toast("Nur R10-CSV lässt sich teilen – JSON bitte über «Import Schläge»");return;}
+  if(csv.length==1){r10ImportText(csv[0][1]);return;}
+  let n=0,sk=0,err=0;csv.forEach(([nm,t])=>{const r=importR10(t);if(r.err)err++;else{n+=r.n;sk+=r.skip||0;}});
+  show("vStats");toast(csv.length+" Dateien: "+n+" Schläge übernommen"+(sk?" · "+sk+" schon vorhanden":"")+(err?" · "+err+" nicht lesbar":""));
+ }catch(e){toast("Teilen fehlgeschlagen");}}
 $("#bImport").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
  rd.onload=()=>{const t=String(rd.result);
   const isCsv=/\.csv$/i.test(f.name)||/schl\u00e4gerart|club type/i.test(t.slice(0,400));
-  if(isCsv){const r=importR10(t);
-   if(r.err){toast(r.err);return;}
-   show("vStats");
-   let m=r.n+" Schläge übernommen";
-   if(r.skip)m+=" · "+r.skip+" schon vorhanden";
-   if(r.bad)m+=" · "+r.bad+" mit fraglicher Schlägerkopfmessung";
-   toast(m);
-   if(r.unknown&&r.unknown.length)setTimeout(()=>toast("Unbekannter Schläger: "+r.unknown.join(", ")),2600);
-   return;}
+  if(isCsv){r10ImportText(t);return;}
   try{const arr=JSON.parse(t);if(!Array.isArray(arr))throw 0;
    DATA=arr.map(d=>({id:d.id||"i"+Math.random().toString(36).slice(2),date:d.date,club:d.club,series:d.series||"",speed:(d.speed==null||d.speed==="")?null:+d.speed,carry:(d.carry==null||d.carry==="")?null:+d.carry,status:d.status||"clean",set:d.set||DEFSET,swing:d.swing||DEFSWING,venue:d.venue||null,bay:d.bay||null,src:d.src||null,dir:d.dir||null,r:d.r||null}));
    save();syncOpts();show(activeView);toast("Import: "+DATA.length+" Schläge");}
@@ -2832,6 +2849,7 @@ if($("#appVerTop"))$("#appVerTop").textContent=APPVER;
 buildChips();syncOpts();renderHero();renderRecent();renderPlan();renderPlanStrip();
 if(_migrated!==false)toast("Auf eingebaute "+DATA.length+" Schläge aktualisiert (alter Stand gesichert)");
 if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+shareReceive();
 </script>
 <div id="printSheet"></div>
 </body>

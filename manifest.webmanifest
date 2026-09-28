@@ -9,10 +9,44 @@
   "theme_color": "#0d1411",
   "icons": [
     {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%230d1411%22/%3E%3Cpath d=%22M14 78 Q50 6 88 60%22 fill=%22none%22 stroke=%22%23cdf24e%22 stroke-width=%226%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2288%22 cy=%2260%22 r=%227%22 fill=%22%23cdf24e%22/%3E%3C/svg%3E",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     }
-  ]
+  ],
+  "share_target": {
+    "action": "./share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "files": [
+        {
+          "name": "file",
+          "accept": [
+            "text/csv",
+            "text/comma-separated-values",
+            "text/plain",
+            "application/vnd.ms-excel",
+            "application/octet-stream",
+            ".csv"
+          ]
+        }
+      ]
+    }
+  }
 }
